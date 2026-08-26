@@ -1,5 +1,8 @@
 package com.example.shiftsync.controllers;
 
+import com.example.shiftsync.entities.Departamento;
+import com.example.shiftsync.entities.Funcionario;
+import com.example.shiftsync.entities.Turno;
 import com.example.shiftsync.entities.Usuario;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.PathMatcher;
@@ -19,20 +22,20 @@ public class UsuarioController {
 
     @GetMapping
 
-     public String ConsultusUario(){
+     public String consultusUario(){
              return " hello word ";
     }
     @GetMapping("/Id2/{id}")
-    public String ConsultUsuarioPorId2 (@PathVariable Long id){
+    public String consultUsuarioPorId2 (@PathVariable Long id){
         return"usuario por id"+id;
     }
     @GetMapping("/empresa/{empresaid}")
-    public String ConsultaEmpresa(@PathVariable long empresaid){
+    public String consultaEmpresa(@PathVariable long empresaid){
         return"empresa " + empresaid;
 
     }
     @GetMapping("/{id}")
-    public  Usuario ConsultUsuarioPorId(@PathVariable Long id) {
+    public  Usuario consultUsuarioPorId(@PathVariable Long id) {
         Usuario usuario = new Usuario();
 
         usuario.setNome("Jhan");
@@ -43,7 +46,7 @@ public class UsuarioController {
         return usuario;
     }
     @GetMapping("/empresa/{empresaId}")
-    public Usuario ConsultEmpresaId (@PathVariable Long empresaId){
+    public Usuario consultEmpresaId (@PathVariable Long empresaId){
         Usuario usuarioConstrutorCompleto = new Usuario("Jhan","06487941999","05/01/1190");
 
         return usuarioConstrutorCompleto;
@@ -52,10 +55,14 @@ public class UsuarioController {
 
 
     @PostMapping
-    public ResponseEntity<Usuario> CadastrarUsuario(@RequestBody Usuario usuarioRequest){
+    public ResponseEntity<Usuario> cadastrarUsuario(@RequestBody Usuario usuarioRequest){
 
         return ResponseEntity.ok(usuarioRequest);
     }
+
+
+
+
 
 
 }

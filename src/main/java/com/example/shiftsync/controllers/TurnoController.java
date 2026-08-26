@@ -1,17 +1,19 @@
 package com.example.shiftsync.controllers;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.example.shiftsync.entities.Turno;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/turnos")
 public class TurnoController {
 
     @GetMapping
-    public  String ConsultTurno(){
+    public  String consultTurno(){
+        return " Turnos";}
 
-        return " Turnos";
-    }
+    @PostMapping
+    public ResponseEntity<Turno> cadastrarTurno(@RequestBody Turno turnoRequest){
+        return ResponseEntity.ok(turnoRequest);}
 
 }

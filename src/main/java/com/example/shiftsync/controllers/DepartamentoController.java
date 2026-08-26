@@ -1,9 +1,8 @@
 package com.example.shiftsync.controllers;
 
+import com.example.shiftsync.entities.Departamento;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -12,7 +11,10 @@ import java.util.List;
 public class DepartamentoController {
 
     @GetMapping
-    public String ConsultDepartamento() {
-        return " departamentos";
-    }
+    public String consultDepartamento() {
+        return " departamentos";}
+
+    @PostMapping
+    public ResponseEntity<Departamento> cadastrarDepartamento(@RequestBody Departamento departamentoRequest){
+        return ResponseEntity.ok(departamentoRequest);}
 }
