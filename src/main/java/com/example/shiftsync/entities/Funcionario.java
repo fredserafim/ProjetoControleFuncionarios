@@ -24,9 +24,12 @@ public class Funcionario {
                 this.nome = nome;}
 
         public Turno getTurno() {
-                return turno;
-        }
-
+                return turno;}
         public void setTurno(Turno turno) {
                 this.turno = turno;}
+
+        public String getFuncao() {
+                return funcao;}
+        public void setFuncao(String funcao) {
+                this.funcao = funcao;}
 }
