@@ -21,30 +21,25 @@ public class Usuario {
     private String dataNascimento;
 
     public Long getId(){
-         return this.id;
-
-    }
-
+         return this.id;}
+    public void setId(Long id) {
+        this.id = id;}
 
     public String getNome(){
-        return this.nome;
-    }
+        return this.nome;}
     public void setNome(String nome){
-        this.nome = nome;
-    }
+        this.nome = nome;}
 
     public String getCpf(){
-        return this.cpf;
-    }
+        return this.cpf;}
     public void setCpf(String cpf){
-        this.cpf = cpf;
-    }
+        this.cpf = cpf;}
+
     public String getDataNascimento(){
-        return this.dataNascimento;
-    }
+        return this.dataNascimento;}
     public void setDataNascimento(String dataNascimento){
-        this.dataNascimento = dataNascimento;
-    }
+        this.dataNascimento = dataNascimento;}
+
 
 
 
