@@ -34,4 +34,9 @@ public class Funcionario {
                 return funcao;}
         public void setFuncao(String funcao) {
                 this.funcao = funcao;}
+
+        public Departamento getDepartamento() {
+                return departamento;}
+        public void setDepartamento(Departamento departamento) {
+                this.departamento = departamento;}
 }

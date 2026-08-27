@@ -31,7 +31,7 @@ public class FuncionarioController {
         return funcionarioFuncao;}
 
     @GetMapping("/Departamento")
-    public String consultFuncionarioFuncao(@PathVariable long funcao ){
+    public String consultFuncionarioFuncao(@PathVariable long departamento ){
         Departamento funcionarioDepartamento = new Departamento();
         return funcionarioDepartamento;}
 
