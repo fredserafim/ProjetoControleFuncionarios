@@ -2,6 +2,8 @@ package com.example.shiftsync.entities;
 
 public class Funcionario {
 
+        public Funcionario(){}
+
         private Long id;
 
         private String nome;

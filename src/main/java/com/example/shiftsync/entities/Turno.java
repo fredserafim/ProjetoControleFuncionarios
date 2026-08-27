@@ -2,6 +2,8 @@ package com.example.shiftsync.entities;
 
 public class Turno {
 
+    public Turno(){}
+
     private Long horario;
 
     private String periodo;

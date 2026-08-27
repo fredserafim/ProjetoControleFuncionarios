@@ -2,6 +2,8 @@ package com.example.shiftsync.entities;
 
 public class Departamento {
 
+    public Departamento(){}
+
     private String setor;
 
     private Turno turno;
