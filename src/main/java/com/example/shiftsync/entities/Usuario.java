@@ -1,5 +1,7 @@
 package com.example.shiftsync.entities;
 
+import java.time.LocalDateTime;
+
 public class Usuario {
 
     public  Usuario(){
@@ -19,6 +21,14 @@ public class Usuario {
     private String cpf;
 
     private String dataNascimento;
+
+    private LocalDateTime dataCadastro;
+
+    private LocalDateTime dataAtualização;
+
+    private String status;
+
+
 
     public Long getId(){
          return this.id;}
@@ -41,6 +51,18 @@ public class Usuario {
         this.dataNascimento = dataNascimento;}
 
 
+    public LocalDateTime getDataCadastro() {
+        return dataCadastro;}
+    public void setDataCadastro(LocalDateTime dataCadastro) {
+        this.dataCadastro = dataCadastro;}
 
+    public LocalDateTime getDataAtualização() {
+        return dataAtualização;}
+    public void setDataAtualização(LocalDateTime dataAtualização) {
+        this.dataAtualização = dataAtualização;}
 
+    public String getStatus() {
+        return status;}
+    public void setStatus(String status) {
+        this.status = status;}
 }

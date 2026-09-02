@@ -10,32 +10,41 @@ import org.springframework.web.bind.annotation.*;
 
 public class FuncionarioController {
 
+    @GetMapping
+    public String consultFuncionarioUsuario(){}
+
     @GetMapping("/{id}")
-    public String consultFuncionarioId(@PathVariable long id ){
+    public String consultFuncionarioId(@PathVariable Long id) {
         Funcionario funcionarioId = new Funcionario();
-        return funcionarioId;}
+        return "funcionarioId";
+    }
 
     @GetMapping("/nome")
-    public String consultFuncionarioNome(@PathVariable long nome ){
+    public String consultFuncionarioNome(@PathVariable Long nome) {
         Funcionario funcionarioNome = new Funcionario();
-        return funcionarioNome;}
+        return "funcionarioNome";
+    }
 
     @GetMapping("/turno")
-    public String consultFuncionarioTurno(@PathVariable long turno ){
+    public String consultFuncionarioTurno(@PathVariable Long turno) {
         Funcionario funcionarioTurno = new Funcionario();
-        return funcionarioTurno;}
+        return "funcionarioTurno";
+    }
 
     @GetMapping("/funcao")
-    public String consultFuncionarioFuncao(@PathVariable long funcao ){
+    public String consultFuncionarioFuncao(@PathVariable Long funcao) {
         Funcionario funcionarioFuncao = new Funcionario();
-        return funcionarioFuncao;}
+        return "funcionarioFuncao";
+    }
 
     @GetMapping("/Departamento")
-    public String consultFuncionarioFuncao(@PathVariable long departamento ){
+    public String consultFuncionarioDepartamento(@PathVariable Long departamento) {
         Departamento funcionarioDepartamento = new Departamento();
-        return funcionarioDepartamento;}
+        return "funcionarioDepartamento";
+    }
 
     @PostMapping
-    public ResponseEntity<Funcionario> cadastrarFuncionario(@RequestBody Funcionario funcionarioRequest){
-        return ResponseEntity.ok(funcionarioRequest);}
+    public ResponseEntity<Funcionario> cadastrarFuncionario(@RequestBody Funcionario funcionarioRequest) {
+        return ResponseEntity.ok(funcionarioRequest);
+    }
 }

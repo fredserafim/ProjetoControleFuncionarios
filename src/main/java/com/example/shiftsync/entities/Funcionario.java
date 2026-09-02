@@ -1,5 +1,7 @@
 package com.example.shiftsync.entities;
 
+import java.time.LocalDateTime;
+
 public class Funcionario {
 
         public Funcionario(){}
@@ -14,29 +16,66 @@ public class Funcionario {
 
         private String funcao;
 
+        private LocalDateTime dataCadastro;
+
+        private LocalDateTime dataAtualização;
+
+        private String status;
+
 
         public Long getId() {
-                return id;}
+                return id;
+        }
         public void setId(Long id) {
-                this.id = id;}
+                this.id = id;
+        }
 
         public String getNome() {
-                return nome;}
+                return nome;
+        }
         public void setNome(String nome) {
-                this.nome = nome;}
+                this.nome = nome;
+        }
 
         public Turno getTurno() {
-                return turno;}
+                return turno;
+        }
         public void setTurno(Turno turno) {
-                this.turno = turno;}
+                this.turno = turno;
+        }
 
         public String getFuncao() {
-                return funcao;}
+                return funcao;
+        }
         public void setFuncao(String funcao) {
-                this.funcao = funcao;}
+                this.funcao = funcao;
+        }
 
         public Departamento getDepartamento() {
-                return departamento;}
+                return departamento;
+        }
         public void setDepartamento(Departamento departamento) {
-                this.departamento = departamento;}
+                this.departamento = departamento;
+        }
+
+        public LocalDateTime getDataCadastro() {
+                return dataCadastro;
+        }
+        public void setDataCadastro(LocalDateTime dataCadastro) {
+                this.dataCadastro = dataCadastro;
+        }
+
+        public LocalDateTime getDataAtualização() {
+                return dataAtualização;
+        }
+        public void setDataAtualização(LocalDateTime dataAtualização) {
+                this.dataAtualização = dataAtualização;
+        }
+
+        public String getStatus() {
+                return status;
+        }
+        public void setStatus(String status) {
+                this.status = status;
+        }
 }
