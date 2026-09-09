@@ -6,8 +6,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 import java.time.LocalDateTime;
-@Entity
 
+@Entity
 public class Usuario {
 
     public  Usuario(){
@@ -18,9 +18,9 @@ public class Usuario {
         this.cpf = cpf;
         this.dataNascimento = dataNascimento;
     }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
     private Long id;
 
     private String nome;
