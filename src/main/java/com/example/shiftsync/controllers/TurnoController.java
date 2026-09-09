@@ -14,25 +14,25 @@ public class TurnoController {
     }
 
     @GetMapping("/{id}")
-    public Long consultTurnoId(@PathVariable Long id){
+    public String consultTurnoId(@PathVariable Long id){
         Turno turnoid = new Turno();
         return "id";
     }
 
     @GetMapping("/horario")
-    public Long consultTurnoHorario(@PathVariable Long horario){
+    public String consultTurnoHorario(@PathVariable Long horario){
         Turno turnoHorario = new Turno();
         return "turnoHorario";
     }
 
     @GetMapping("/periodo")
-    public Long consultTurnoPeriodo(@PathVariable Long periodo){
+    public String consultTurnoPeriodo(@PathVariable Long periodo){
         Turno turnoPeriodo = new Turno();
         return "turnoPeriodo";
     }
 
     @GetMapping("/horaExtra")
-    public Turno consultTurnoHoraExtra(@PathVariable Long horaExtra){
+    public String consultTurnoHoraExtra(@PathVariable Long horaExtra){
         Turno turnoHoraExtra = new Turno();
         return  "turnoHoraExtra";
     }

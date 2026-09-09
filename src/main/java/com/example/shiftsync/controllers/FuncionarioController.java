@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 public class FuncionarioController {
 
     @GetMapping
-    public String consultFuncionarioUsuario(){}
+    public String consultFuncionarioUsuario(){return " tudo";}
 
     @GetMapping("/{id}")
     public String consultFuncionarioId(@PathVariable Long id) {

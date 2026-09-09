@@ -11,10 +11,10 @@ import java.util.List;
 public class DepartamentoController {
 
     @GetMapping
-    public String consultDepartamentoUsuario(){}
+    public String consultDepartamentoUsuario(){return "tudo";}
 
     @GetMapping("/{id}")
-    public Long consultDepartamentoId(@PathVariable Long id) {
+    public String consultDepartamentoId(@PathVariable Long id) {
         Departamento departamentoId = new Departamento();
         return "departamentoId";
     }
