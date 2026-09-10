@@ -7,11 +7,14 @@ import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.entities.Funcionario;
 import com.example.shiftsync.entities.Turno;
 import com.example.shiftsync.entities.Usuario;
+import com.example.shiftsync.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.PathMatcher;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/usuarios")
@@ -19,15 +22,13 @@ import java.time.LocalDateTime;
 
 public class UsuarioController {
 
-    private final PathMatcher pathMatcher;
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
-    public UsuarioController(PathMatcher pathMatcher) {
-        this.pathMatcher = pathMatcher;
-    }
 
     @GetMapping
-     public String consultusUario(){
-             return " hello word ";
+     public List<Usuario> consultusUario(){
+             return usuarioRepository.findAll();
     }
 
     @GetMapping("/Id2/{id}")
@@ -42,15 +43,13 @@ public class UsuarioController {
     }
 
     @GetMapping("/{id}")
-    public  Usuario consultUsuarioPorId(@PathVariable Long id) {
-        Usuario usuario = new Usuario();
+    public  ResponseEntity<Usuario> consultUsuarioPorId(@PathVariable Long id) {
+        var usuario = usuarioRepository.findById(id).orElse(null);
 
-        usuario.setNome("Jhan");
-        usuario.setCpf("06487941999");
-        usuario.setDataNascimento("05 / 01 / 1990");
-
-
-        return usuario;
+        if(usuario == null){
+            return  ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(usuario);
     }
 
     @GetMapping("/empresa/{empresaId}")
@@ -67,8 +66,12 @@ public class UsuarioController {
         usuarioBanco.setNome(usuarioRequest.getNome());
         usuarioBanco.setCpf(usuarioRequest.getCpf());
         usuarioBanco.setDataNascimento(usuarioRequest.getDataNascimento());
+        usuarioBanco.setSenha(usuarioRequest.getSenha());
         usuarioBanco.setDataCadastro(LocalDateTime.now());
-        usuarioBanco.setStatus("a");
+        usuarioBanco.setStatus("A");
+
+        //salvando no banco
+        usuarioRepository.save(usuarioBanco);
 
         return ResponseEntity.ok(new UsuarioResponse(usuarioBanco.getId(),
                 "Cadastro com sucesso!"));
@@ -76,18 +79,35 @@ public class UsuarioController {
 
     @PutMapping("/{id}")
     public ResponseEntity <UsuarioResponse>
-    atualizarUsuario(@PathVariable Long id, @RequestBody Usuario usuarioRequest){
+    atualizarUsuario(@PathVariable Long id, @RequestBody UsuarioRequest usuarioRequest){
         // consulta no banco
-        Usuario usuarioBanco = new Usuario();
+        Usuario usuarioBanco = usuarioRepository.findById(id).orElse(null);
 
         if(usuarioBanco != null){
             usuarioBanco.setNome(usuarioRequest.getNome());
             usuarioBanco.setCpf(usuarioRequest.getCpf());
             usuarioBanco.setDataNascimento(usuarioRequest.getDataNascimento());
-            usuarioBanco.setDataAtualização(LocalDateTime.now());
+            usuarioBanco.setDataAtualizacao(LocalDateTime.now());
+            usuarioBanco.setSenha(usuarioRequest.getSenha());
+            usuarioRepository.save(usuarioBanco);
 
             return ResponseEntity.ok(new UsuarioResponse(usuarioBanco.getId(),
                     "usuarioAtualizado com sucesso!"));
+
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<UsuarioResponse> AtualizarStatus(@PathVariable Long id, @RequestBody AtualizaStatusUsuarioRequest usuarioRequest){
+
+        Usuario usuarioBanco = usuarioRepository.findById(id).orElse(null);
+
+        if(usuarioBanco != null){
+            usuarioBanco.setStatus(usuarioRequest.getStatus());
+            usuarioRepository.save(usuarioBanco);
+
+            return ResponseEntity.ok(new UsuarioResponse(usuarioBanco.getId(), "Status atualizado com sucesso!"));
 
         }
         return ResponseEntity.notFound().build();
@@ -98,11 +118,12 @@ public class UsuarioController {
     public ResponseEntity <UsuarioResponse>
     atualizarStatusUsuario(@PathVariable Long id){
         // consulta no banco
-        Usuario usuarioBanco = new Usuario();
+        Usuario usuarioBanco = usuarioRepository.findById(id).orElse(null);
 
         if(usuarioBanco != null){
             usuarioBanco.setStatus("D");
-
+            usuarioRepository.save(usuarioBanco);
+            //usuarioRepository.delete(usuarioBanco);
 
             return ResponseEntity.ok().build();
 

@@ -1,18 +1,27 @@
 package com.example.shiftsync.entities;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
 import java.time.LocalDateTime;
 
+@Entity
 public class Funcionario {
+
 
         public Funcionario(){}
 
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
         private String nome;
 
-        private Departamento departamento;
+        //private Departamento departamento;
 
-        private  Turno turno;
+        //private  Turno turno;
 
         private String funcao;
 

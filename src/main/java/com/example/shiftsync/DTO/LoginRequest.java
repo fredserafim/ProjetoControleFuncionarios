@@ -5,8 +5,9 @@ public class LoginRequest {
     public LoginRequest(){}
 
 
-    private String senha;
     private String login;
+    private String senha;
+
 
     public String getSenha() {
         return senha;}

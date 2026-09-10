@@ -31,45 +31,73 @@ public class Usuario {
 
     private LocalDateTime dataCadastro;
 
-    private LocalDateTime dataAtualização;
+    private LocalDateTime dataAtualizacao;
 
     private String status;
 
+    private String senha;
 
+    public Long getId() {
+        return id;
+    }
 
-    public Long getId(){
-         return this.id;}
     public void setId(Long id) {
-        this.id = id;}
+        this.id = id;
+    }
 
-    public String getNome(){
-        return this.nome;}
-    public void setNome(String nome){
-        this.nome = nome;}
+    public String getNome() {
+        return nome;
+    }
 
-    public String getCpf(){
-        return this.cpf;}
-    public void setCpf(String cpf){
-        this.cpf = cpf;}
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
 
-    public String getDataNascimento(){
-        return this.dataNascimento;}
-    public void setDataNascimento(String dataNascimento){
-        this.dataNascimento = dataNascimento;}
+    public String getCpf() {
+        return cpf;
+    }
 
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
+    }
+
+    public String getDataNascimento() {
+        return dataNascimento;
+    }
+
+    public void setDataNascimento(String dataNascimento) {
+        this.dataNascimento = dataNascimento;
+    }
 
     public LocalDateTime getDataCadastro() {
-        return dataCadastro;}
-    public void setDataCadastro(LocalDateTime dataCadastro) {
-        this.dataCadastro = dataCadastro;}
+        return dataCadastro;
+    }
 
-    public LocalDateTime getDataAtualização() {
-        return dataAtualização;}
-    public void setDataAtualização(LocalDateTime dataAtualização) {
-        this.dataAtualização = dataAtualização;}
+    public void setDataCadastro(LocalDateTime dataCadastro) {
+        this.dataCadastro = dataCadastro;
+    }
+
+    public LocalDateTime getDataAtualizacao() {
+        return dataAtualizacao;
+    }
+
+    public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
+        this.dataAtualizacao = dataAtualizacao;
+    }
 
     public String getStatus() {
-        return status;}
+        return status;
+    }
+
     public void setStatus(String status) {
-        this.status = status;}
+        this.status = status;
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
 }

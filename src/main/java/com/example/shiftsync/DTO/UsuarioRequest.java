@@ -10,6 +10,8 @@ public class UsuarioRequest {
 
     private String dataNascimento;
 
+    private String senha;
+
     public String getNome() {
         return nome;}
     public void setNome(String nome) {
@@ -24,4 +26,11 @@ public class UsuarioRequest {
         return dataNascimento;}
     public void setDataNascimento(String dataNascimento) {
         this.dataNascimento = dataNascimento;}
+
+    public String getSenha() {
+        return senha;
+    }
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
 }
