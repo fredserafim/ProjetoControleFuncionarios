@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.entities.Funcionario;
 import com.example.shiftsync.entities.Turno;
 
@@ -13,6 +14,7 @@ public class DepartamentoRequest {
         this.setor = setor;
         this.turno = turno;
         this.funcionario = funcionario;
+        this.status = status;
     }
 
     private Long id;
@@ -22,6 +24,8 @@ public class DepartamentoRequest {
     private Turno turno;
 
     private Funcionario funcionario;
+
+    private String status;
 
     public Long getId() {
         return id;
@@ -53,5 +57,13 @@ public class DepartamentoRequest {
 
     public void setFuncionario(Funcionario funcionario) {
         this.funcionario = funcionario;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

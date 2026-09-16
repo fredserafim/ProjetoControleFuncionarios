@@ -27,7 +27,7 @@ public class Funcionario {
 
         private LocalDateTime dataCadastro;
 
-        private LocalDateTime dataAtualização;
+        private LocalDateTime dataAtualizacao;
 
         private String status;
 
@@ -46,12 +46,12 @@ public class Funcionario {
                 this.nome = nome;
         }
 
-        public Turno getTurno() {
+        /*public Turno getTurno() {
                 return turno;
         }
         public void setTurno(Turno turno) {
                 this.turno = turno;
-        }
+        }*/
 
         public String getFuncao() {
                 return funcao;
@@ -60,12 +60,12 @@ public class Funcionario {
                 this.funcao = funcao;
         }
 
-        public Departamento getDepartamento() {
+        /*public Departamento getDepartamento() {
                 return departamento;
         }
         public void setDepartamento(Departamento departamento) {
                 this.departamento = departamento;
-        }
+        }*/
 
         public LocalDateTime getDataCadastro() {
                 return dataCadastro;
@@ -74,11 +74,11 @@ public class Funcionario {
                 this.dataCadastro = dataCadastro;
         }
 
-        public LocalDateTime getDataAtualização() {
-                return dataAtualização;
+        public LocalDateTime getDataAtualizacao() {
+                return dataAtualizacao;
         }
-        public void setDataAtualização(LocalDateTime dataAtualização) {
-                this.dataAtualização = dataAtualização;
+        public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
+                this.dataAtualizacao = dataAtualizacao;
         }
 
         public String getStatus() {

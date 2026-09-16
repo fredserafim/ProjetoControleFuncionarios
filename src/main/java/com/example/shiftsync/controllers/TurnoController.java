@@ -1,16 +1,27 @@
 package com.example.shiftsync.controllers;
 
 import com.example.shiftsync.entities.Turno;
+import com.example.shiftsync.entities.Usuario;
+import com.example.shiftsync.repository.TurnoRopository;
+import com.example.shiftsync.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/turnos")
 public class TurnoController {
 
+
+    @Autowired
+    private TurnoRopository turnoRepository;
+
+
     @GetMapping
-    public  String consultTurnoUsuario() {
-        return " Turnos";
+    public List<Turno> consultTurno(){
+        return turnoRepository.findAll();
     }
 
     @GetMapping("/{id}")

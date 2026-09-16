@@ -77,7 +77,7 @@ public class UsuarioController {
                 "Cadastro com sucesso!"));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id}")// atualiza tudo
     public ResponseEntity <UsuarioResponse>
     atualizarUsuario(@PathVariable Long id, @RequestBody UsuarioRequest usuarioRequest){
         // consulta no banco
@@ -98,7 +98,7 @@ public class UsuarioController {
         return ResponseEntity.notFound().build();
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id}/status")// atualiza pontualmente
     public ResponseEntity<UsuarioResponse> AtualizarStatus(@PathVariable Long id, @RequestBody AtualizaStatusUsuarioRequest usuarioRequest){
 
         Usuario usuarioBanco = usuarioRepository.findById(id).orElse(null);
@@ -114,7 +114,7 @@ public class UsuarioController {
     }
 
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id}")// deletar
     public ResponseEntity <UsuarioResponse>
     atualizarStatusUsuario(@PathVariable Long id){
         // consulta no banco

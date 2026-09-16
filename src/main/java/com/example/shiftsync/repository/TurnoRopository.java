@@ -9,7 +9,4 @@ import java.util.Optional;
 
 @Repository
 public interface TurnoRopository  extends JpaRepository<Turno,Long> {
-
-    Optional<List<Turno>> findAllByHoraExtraIsNotEmpty();
-
 }

@@ -14,6 +14,7 @@ public class FuncionarioRequest {
         this.departamento = departamento;
         this.turno = turno;
         this.funcao = funcao;
+        this.status = status;
     }
 
     private Long id;
@@ -25,6 +26,8 @@ public class FuncionarioRequest {
     private Turno turno;
 
     private String funcao;
+
+    private String status;
 
     public Long getId() {
         return id;
@@ -64,5 +67,13 @@ public class FuncionarioRequest {
 
     public void setFuncao(String funcao) {
         this.funcao = funcao;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
