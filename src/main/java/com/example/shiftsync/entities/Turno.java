@@ -24,7 +24,7 @@ public class Turno {
 
     private LocalDateTime dataCadastro;
 
-    private LocalDateTime dataAtualização;
+    private LocalDateTime dataAtualizacao;
 
     private String status;
 
@@ -63,11 +63,11 @@ public class Turno {
         this.dataCadastro = dataCadastro;
     }
 
-    public LocalDateTime getDataAtualização() {
-        return dataAtualização;
+    public LocalDateTime getDataAtualizacao() {
+        return dataAtualizacao;
     }
-    public void setDataAtualização(LocalDateTime dataAtualização) {
-        this.dataAtualização = dataAtualização;
+    public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
+        this.dataAtualizacao = dataAtualizacao;
     }
 
     public String getStatus() {

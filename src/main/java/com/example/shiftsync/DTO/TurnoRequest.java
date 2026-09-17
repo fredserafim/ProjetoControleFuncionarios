@@ -5,11 +5,12 @@ public class TurnoRequest {
     public TurnoRequest() {
     }
 
-    public TurnoRequest(Long horario, String periodo, Long horaExtra) {
+    public TurnoRequest(Long horario, String periodo, Long horaExtra,String status) {
         this.id = id;
         this.horario = horario;
         this.periodo = periodo;
         this.horaExtra = horaExtra;
+        this.status = status;
     }
 
     private Long id;
@@ -19,6 +20,8 @@ public class TurnoRequest {
     private String periodo;
 
     private Long horaExtra;
+
+    private String status;
 
     public Long getId() {
         return id;
@@ -50,5 +53,13 @@ public class TurnoRequest {
 
     public void setHoraExtra(Long horaExtra) {
         this.horaExtra = horaExtra;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
