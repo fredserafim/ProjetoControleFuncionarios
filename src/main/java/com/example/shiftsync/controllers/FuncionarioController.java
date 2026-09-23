@@ -52,6 +52,12 @@ public class FuncionarioController {
         return "funcionarioFuncao";
     }
 
+    @GetMapping("/{id}/departamento")
+    public List<Funcionario> consultaFuncionarioPorDepartamento(@PathVariable Long id){
+        List<Funcionario> departamentoFuncionario = List.of();
+        return departamentoFuncionario;
+    }
+
     /*@GetMapping("/Departamento")
     public String consultFuncionarioDepartamento(@PathVariable Long departamento) {
         Departamento funcionarioDepartamento = new Departamento();

@@ -14,7 +14,7 @@ public class Funcionario {
         public Funcionario(){}
 
         @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        @GeneratedValue(strategy = GenerationType.IDENTITY)// CRIA SIQUENCI
         private Long id;
 
         private String nome;

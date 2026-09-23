@@ -1,11 +1,9 @@
 package com.example.shiftsync.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 public class Departamento {
@@ -18,9 +16,9 @@ public class Departamento {
 
     private String setor;
 
-    //private Turno turno;
+    @OneToMany
+    private List<Turno> turno;
 
-    //private Funcionario funcionario;
 
     private LocalDateTime dataCadastro;
 
@@ -42,19 +40,19 @@ public class Departamento {
         this.setor = setor;
     }
 
-    /*public Turno getTurno() {
+    public List<Turno> getTurno() {
         return turno;
     }
-    public void setTurno(Turno turno) {
+    public void setTurno(List<Turno> turno) {
         this.turno = turno;
     }
 
-    public Funcionario getFuncionario() {
-        return funcionario;
-    }
-    public void setFuncionario(Funcionario funcionario) {
-        this.funcionario = funcionario;
-    }*/
+//    public Funcionario getFuncionario() {
+//        return funcionario;
+//    }
+//    public void setFuncionario(Funcionario funcionario) {
+//        this.funcionario = funcionario;
+//    }
 
     public LocalDateTime getDataCadastro() {
         return dataCadastro;

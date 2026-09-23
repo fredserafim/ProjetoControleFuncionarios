@@ -25,8 +25,8 @@ public class DepartamentoController {
         return departamentoRepository.findAll();
     }
 
-    @GetMapping
-    public String consultDepartamentoUsuario(){return "tudo";}
+    //@GetMapping
+    //public String consultDepartamentoUsuario(){return "tudo";}
 
     @GetMapping("/{id}")
     public String consultDepartamentoId(@PathVariable Long id) {
@@ -34,23 +34,19 @@ public class DepartamentoController {
         return "departamentoId";
     }
 
-    @GetMapping("/setor")
-    public String consultDepartamentoSetor(@PathVariable Long setor){
+    @GetMapping("/{id}/setor")
+    public String consultDepartamentoSetor(@PathVariable Long id){
         Departamento departamentoSetor = new Departamento();
         return "departamentoSetor";
     }
 
     @GetMapping("/turno")
-    public String consultDepartamentoTurno(@PathVariable Long turno){
+    public String consultaDepartametoPor(@PathVariable Long turno){
         Departamento departamentoTurno = new Departamento();
-        return "departamentoTurno";
+        return "departamentoTurno" ;
     }
 
-    @GetMapping("/funcionario")
-    public String consultDepartamentoFuncionario(@PathVariable Long funcionario){
-        Departamento departamentoFuncionario = new Departamento();
-        return "departamentoFuncionario";
-    }
+
 
 
     @PostMapping
