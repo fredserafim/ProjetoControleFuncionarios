@@ -7,6 +7,7 @@ import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.entities.Funcionario;
 import com.example.shiftsync.entities.Turno;
 import com.example.shiftsync.entities.Usuario;
+import com.example.shiftsync.repository.EmpresaRepository;
 import com.example.shiftsync.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,9 @@ public class UsuarioController {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private EmpresaRepository empresaRepository;
 
 
     @GetMapping
@@ -61,13 +65,20 @@ public class UsuarioController {
 
     @PostMapping
     public ResponseEntity<UsuarioResponse> cadastrarUsuario(@RequestBody UsuarioRequest usuarioRequest){
-        Usuario usuarioBanco = new Usuario();
 
+        var empresaBanco = empresaRepository.findById(usuarioRequest.getEmpresa_id()).orElse(null);
+
+        if(empresaBanco ==  null){
+            return ResponseEntity.notFound().build();
+        }
+        Usuario usuarioBanco = new Usuario();
         usuarioBanco.setNome(usuarioRequest.getNome());
         usuarioBanco.setCpf(usuarioRequest.getCpf());
         usuarioBanco.setDataNascimento(usuarioRequest.getDataNascimento());
         usuarioBanco.setSenha(usuarioRequest.getSenha());
         usuarioBanco.setDataCadastro(LocalDateTime.now());
+        usuarioBanco.setSenha(usuarioRequest.getSenha());
+        usuarioBanco.setEmpresa(empresaBanco);
         usuarioBanco.setStatus("A");
 
         //salvando no banco
