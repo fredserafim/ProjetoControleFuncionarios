@@ -25,7 +25,7 @@ public class EmpresaController {
 
 
         empresaBanco.setCnpj(empresaRequest.getCnpj());
-        empresaBanco.setGetRazaoSocial(empresaRequest.getRazaoSocial());
+        empresaBanco.setRazaoSocial(empresaRequest.getRazaoSocial());
         empresaBanco.setIncricaoEstadual(empresaRequest.getIncricaoEstadual());
         empresaBanco.setNomeFantasia(empresaRequest.getNomeFantasia());
 

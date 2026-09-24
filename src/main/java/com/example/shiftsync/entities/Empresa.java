@@ -6,14 +6,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 @Entity
-public class Empresa {
-
-    public class (){
-
+public class Empresa{
+    public Empresa() {
     }
 
+
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY);
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private  Long id;
 
     private String razaoSocial;
@@ -23,14 +23,6 @@ public class Empresa {
     private String cnpj;
 
     private String incricaoEstadual;
-
-    public String getRazaoSocial{
-        return razaoSocial;
-    }
-
-    public void setGetRazaoSocial(String getRazaoSocial) {
-        this.getRazaoSocial = getRazaoSocial;
-    }
 
     public Long getId() {
         return id;
