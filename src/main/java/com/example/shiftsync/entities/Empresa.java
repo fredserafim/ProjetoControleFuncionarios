@@ -1,9 +1,8 @@
 package com.example.shiftsync.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+
+import java.util.List;
 
 @Entity
 public class Empresa{
@@ -20,9 +19,22 @@ public class Empresa{
 
     private String nomeFantasia;
 
+    @Column(unique = true)
     private String cnpj;
 
+    @Column(unique = true)
     private String incricaoEstadual;
+
+    @OneToMany(mappedBy = "empresa")
+    private List<Usuario> usuarios;
+
+    public List<Usuario> getUsuarios() {
+        return usuarios;
+    }
+
+    public void setUsuarios(List<Usuario> usuarios) {
+        this.usuarios = usuarios;
+    }
 
     public Long getId() {
         return id;

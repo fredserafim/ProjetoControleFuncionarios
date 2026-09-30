@@ -11,7 +11,7 @@ public class EmpresaRequest {
 
     private String cnpj;
 
-    private String incricaoEstadual;
+    private String inscricaoEstadual;
 
     public String getRazaoSocial() {
         return razaoSocial;
@@ -37,11 +37,11 @@ public class EmpresaRequest {
         this.cnpj = cnpj;
     }
 
-    public String getIncricaoEstadual() {
-        return incricaoEstadual;
+    public String getInscricaoEstadual() {
+        return inscricaoEstadual;
     }
 
-    public void setIncricaoEstadual(String incricaoEstadual) {
-        this.incricaoEstadual = incricaoEstadual;
+    public void setInsricaoEstadual(String inscricaoEstadual) {
+        this.inscricaoEstadual = inscricaoEstadual;
     }
 }

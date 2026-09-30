@@ -6,6 +6,7 @@ public class UsuarioResponse {
 
     public UsuarioResponse(){}
 
+
     public UsuarioResponse(Long id, String mensagem) {
         this.id = id;
         this.mensagem = mensagem;}

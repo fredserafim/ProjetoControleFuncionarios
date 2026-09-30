@@ -1,8 +1,11 @@
 package com.example.shiftsync.controllers;
 
+import com.example.shiftsync.DTO.EmpresaConsultaResponse;
 import com.example.shiftsync.DTO.EmpresaRequest;
 import com.example.shiftsync.DTO.EmpresaResponse;
+import com.example.shiftsync.DTO.UsuarioConsultaResponse;
 import com.example.shiftsync.entities.Empresa;
+import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.EmpresaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +28,7 @@ public class EmpresaController {
 
         empresaBanco.setCnpj(empresaRequest.getCnpj());
         empresaBanco.setRazaoSocial(empresaRequest.getRazaoSocial());
-        empresaBanco.setIncricaoEstadual(empresaRequest.getIncricaoEstadual());
+        empresaBanco.setIncricaoEstadual(empresaRequest.getInscricaoEstadual());
         empresaBanco.setNomeFantasia(empresaRequest.getNomeFantasia());
 
         empresaRepository.save(empresaBanco);
@@ -39,8 +42,22 @@ public class EmpresaController {
     }
 
     @GetMapping
-    public List<Empresa>listarTodos(){
+    public List<EmpresaConsultaResponse>listarTodos(){
 
-        return empresaRepository.findAll();
+        return empresaRepository.findAll().stream().map(EmpresaConsultaResponse::new).toList();
+    }
+
+    @GetMapping("/cnpj/{cnpj}/usuarios")
+    public ResponseEntity<List<UsuarioConsultaResponse>> buscarUsuariosPorCnpjEmpresa(@PathVariable String cnpj) {
+
+        var empresaBanco = empresaRepository.getEmpresaByCnpj(cnpj).orElse(null);
+        if (empresaBanco == null)
+            return ResponseEntity.notFound().build();
+
+        var usuarioEmpresaBanco = empresaBanco.getUsuarios()
+                .stream()
+                .map(UsuarioConsultaResponse::new)
+                .toList();
+         return ResponseEntity.ok(usuarioEmpresaBanco);
     }
 }

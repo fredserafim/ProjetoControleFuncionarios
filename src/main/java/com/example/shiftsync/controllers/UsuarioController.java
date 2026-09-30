@@ -1,6 +1,7 @@
 package com.example.shiftsync.controllers;
 
 import com.example.shiftsync.DTO.AtualizaStatusUsuarioRequest;
+import com.example.shiftsync.DTO.UsuarioConsultaResponse;
 import com.example.shiftsync.DTO.UsuarioRequest;
 import com.example.shiftsync.DTO.UsuarioResponse;
 import com.example.shiftsync.entities.Departamento;
@@ -31,8 +32,10 @@ public class UsuarioController {
 
 
     @GetMapping
-     public List<Usuario> consultusUario(){
-             return usuarioRepository.findAll();
+     public List<UsuarioConsultaResponse> consultusUario(){
+             return usuarioRepository.findAll()
+                     .stream()
+                     .map(UsuarioConsultaResponse::new).toList();
     }
 
     @GetMapping("/Id2/{id}")
@@ -95,6 +98,14 @@ public class UsuarioController {
         Usuario usuarioBanco = usuarioRepository.findById(id).orElse(null);
 
         if(usuarioBanco != null){
+
+
+            var empresaBanco = empresaRepository.findById(usuarioRequest.getEmpresa_id()).orElse(null);
+            if(empresaBanco == null){
+                return ResponseEntity.notFound().build();
+            }
+
+            usuarioBanco.setEmpresa(empresaBanco);
             usuarioBanco.setNome(usuarioRequest.getNome());
             usuarioBanco.setCpf(usuarioRequest.getCpf());
             usuarioBanco.setDataNascimento(usuarioRequest.getDataNascimento());

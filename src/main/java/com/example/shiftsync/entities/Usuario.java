@@ -34,6 +34,7 @@ public class Usuario {
 
     private String senha;
 
+    @ManyToOne
     @JoinColumn(name = "empresa_id", referencedColumnName = "id")
     private Empresa empresa;
 
