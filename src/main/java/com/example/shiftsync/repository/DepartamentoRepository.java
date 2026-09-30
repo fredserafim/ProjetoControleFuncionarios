@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface DepartamentoRepository extends JpaRepository<Departamento,Long> {
 
 
+
 }
