@@ -17,7 +17,7 @@ import java.util.List;
 public class TurnoController {
 
 
-    @Autowired
+    @Autowired // injeção de dependencia, alocação de outros arquivos que preciso de forma automtica com consulmo de memoria somente quando necessario.
     private TurnoRopository turnoRepository;
 
 
@@ -65,6 +65,19 @@ public class TurnoController {
 
         return ResponseEntity.ok(new TurnoResponse(turnoBanco.getId(),
                 "Cadastro com sucesso!"));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<TurnoConsultaResponse>> listarTodos(){
+
+
+        var listaCurso = turnoRepository.findAll()
+                .stream()
+                .map(TurnoConsultaResponse::new).toList();
+
+            return ResponseEntity.ok(listaCurso);
+
+
     }
 
     @PutMapping("/{id}")// atualiza tudo

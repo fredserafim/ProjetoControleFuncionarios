@@ -3,6 +3,8 @@ package com.example.shiftsync.entities;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 public class Usuario {
@@ -33,6 +35,15 @@ public class Usuario {
     private String status;
 
     private String senha;
+
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "turno_usuarios",
+            joinColumns = @JoinColumn(name = "usuario_id"),
+            inverseJoinColumns = @JoinColumn(name = "turno_id")
+    )
+    private Set<Turno> turno = new HashSet<>();
 
     @ManyToOne
     @JoinColumn(name = "empresa_id", referencedColumnName = "id")
@@ -110,4 +121,11 @@ public class Usuario {
         this.senha = senha;
     }
 
+    public Set<Turno> getTurno() {
+        return turno;
+    }
+
+    public void setTurno(Set<Turno> turno) {
+        this.turno = turno;
+    }
 }

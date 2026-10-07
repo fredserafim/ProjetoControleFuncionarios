@@ -3,7 +3,9 @@ package com.example.shiftsync.entities;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 public class Turno {
@@ -26,16 +28,28 @@ public class Turno {
 
     private String status;
 
-    @ManyToOne
-    @JoinColumn(name = "departamentos_id")
-    private Departamento departamentos;
-
-    public void setDepartamentos(Departamento departamentos) {
-        this.departamentos = departamentos;
+    public Set<Usuario> getUsuario() {
+        return usuarios;
     }
 
-    public Departamento getDepartamentos() {
-        return departamentos;
+    public void setUsuario(Set<Usuario> usuario) {
+        this.usuarios = usuario;
+    }
+
+    @ManyToMany(mappedBy = "turno" )
+
+    private Set<Usuario> usuarios =  new HashSet<>();
+
+    @ManyToOne
+    @JoinColumn(name = "turno_id")
+    private Turno turno;
+
+    public Turno getTurno() {
+        return turno;
+    }
+
+    public void setTurno(Turno turno) {
+        this.turno = turno;
     }
 
     public Long getId() {
