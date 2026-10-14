@@ -67,7 +67,7 @@ public class TurnoController {
                 "Cadastro com sucesso!"));
     }
 
-    @GetMapping
+    @GetMapping("/listarTudo")
     public ResponseEntity<List<TurnoConsultaResponse>> listarTodos(){
 
 
