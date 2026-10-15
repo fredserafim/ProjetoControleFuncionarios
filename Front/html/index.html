@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acesso do gerente</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/api.js" defer></script>
+  <script src="../js/login.js" defer></script>
+</head>
+<body class="login-page">
+  <main class="login-container">
+    <section class="login-card" aria-labelledby="titulo-login">
+      <p class="sobretitulo">ÁREA ADMINISTRATIVA</p>
+      <h1 id="titulo-login">Acessar sua conta</h1>
+      <p class="login-descricao">Entre com suas credenciais para continuar.</p>
+
+      <form id="login-form">
+        <div class="campo-login">
+          <label for="login">Login</label>
+          <input id="login" name="login" type="text" autocomplete="username" required>
+        </div>
+
+        <div class="campo-login">
+          <label for="senha">Senha</label>
+          <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+        </div>
+
+        <button id="botao-entrar" class="botao-entrar" type="submit">Entrar</button>
+        <p id="mensagem-login" class="mensagem-login" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

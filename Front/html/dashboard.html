@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel de controle</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script src="../js/api.js" defer></script>
+  <script src="../js/main.js" defer></script>
+  <script src="../js/menu.js" defer></script>
+</head>
+<body>
+  <div class="dashboard-layout">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <div class="sidebar-top">
+        <a class="sidebar-brand" href="#inicio"><span class="brand-mark" aria-hidden="true">G</span>Gestão</a>
+        <p class="sidebar-caption">PAINEL DO GERENTE</p>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="menu-link" href="#inicio" data-menu-item="inicio" data-title="Início" data-description="Visão geral dos usuários cadastrados." aria-current="page">Início</a>
+        <a class="menu-link" href="#turnos" data-menu-item="turnos" data-title="Turnos" data-description="Consulte os turnos cadastrados.">Turnos</a>
+        <a class="menu-link" href="#departamentos" data-menu-item="departamentos" data-title="Departamento" data-description="Consulte os departamentos cadastrados.">Departamento</a>
+        <a class="menu-link" href="#funcionarios" data-menu-item="funcionarios" data-title="Funcionários" data-description="Consulte os funcionários cadastrados.">Funcionários</a>
+      </nav>
+
+      <a class="sidebar-logout" href="index.html">Sair</a>
+    </aside>
+
+    <main class="dashboard-content">
+      <header class="dashboard-header">
+        <div>
+          <p class="sobretitulo">ÁREA ADMINISTRATIVA</p>
+          <h1 id="titulo-pagina">Início</h1>
+          <p id="descricao-pagina" class="descricao">Visão geral dos usuários cadastrados.</p>
+        </div>
+      </header>
+
+      <section class="dashboard-panel" data-panel="inicio" aria-labelledby="titulo-inicio">
+        <div class="barra-lista">
+          <h2 id="titulo-inicio">Usuários</h2>
+          <button type="button" data-refresh="inicio">Atualizar</button>
+        </div>
+        <p class="mensagem" data-status="inicio" role="status" aria-live="polite">Carregando...</p>
+        <div class="lista-usuarios" data-list="inicio"></div>
+      </section>
+
+      <section class="dashboard-panel" data-panel="turnos" aria-labelledby="titulo-turnos" hidden>
+        <div class="barra-lista">
+          <h2 id="titulo-turnos">Turnos cadastrados</h2>
+          <button type="button" data-refresh="turnos">Atualizar</button>
+        </div>
+        <p class="mensagem" data-status="turnos" role="status" aria-live="polite"></p>
+        <div class="lista-usuarios" data-list="turnos"></div>
+      </section>
+
+      <section class="dashboard-panel" data-panel="departamentos" aria-labelledby="titulo-departamentos" hidden>
+        <div class="barra-lista">
+          <h2 id="titulo-departamentos">Departamentos cadastrados</h2>
+          <button type="button" data-refresh="departamentos">Atualizar</button>
+        </div>
+        <p class="mensagem" data-status="departamentos" role="status" aria-live="polite"></p>
+        <div class="lista-usuarios" data-list="departamentos"></div>
+      </section>
+
+      <section class="dashboard-panel" data-panel="funcionarios" aria-labelledby="titulo-funcionarios" hidden>
+        <div class="barra-lista">
+          <h2 id="titulo-funcionarios">Funcionários cadastrados</h2>
+          <button type="button" data-refresh="funcionarios">Atualizar</button>
+        </div>
+        <p class="mensagem" data-status="funcionarios" role="status" aria-live="polite"></p>
+        <div class="lista-usuarios" data-list="funcionarios"></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
