@@ -9,9 +9,9 @@ public class DepartamentoRequest {
     public DepartamentoRequest() {
     }
 
-    public DepartamentoRequest(Long id, String setor, Turno turno, Funcionario funcionario) {
+    public DepartamentoRequest(Long id, String departamento, Turno turno, Funcionario funcionario) {
         this.id = id;
-        this.setor = setor;
+        this.departamento = departamento;
         this.turno = turno;
         this.funcionario = funcionario;
         this.status = status;
@@ -19,7 +19,7 @@ public class DepartamentoRequest {
 
     private Long id;
 
-    private String setor;
+    private String departamento;
 
     private Turno turno;
 
@@ -35,12 +35,12 @@ public class DepartamentoRequest {
         this.id = id;
     }
 
-    public String getSetor() {
-        return setor;
+    public String getDepartamento() {
+        return departamento;
     }
 
-    public void setSetor(String setor) {
-        this.setor = setor;
+    public void setDepartamento() {
+        this.departamento = departamento;
     }
 
     public Turno getTurno() {

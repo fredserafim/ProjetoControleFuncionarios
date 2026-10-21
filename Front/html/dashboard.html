@@ -47,7 +47,7 @@
 
       <section class="dashboard-panel" data-panel="turnos" aria-labelledby="titulo-turnos" hidden>
         <div class="barra-lista">
-          <h2 id="titulo-turnos">Turnos cadastrados</h2>
+          <h2 id="titulo-turnos">Turnos disponíveis</h2>
           <button type="button" data-refresh="turnos">Atualizar</button>
         </div>
         <p class="mensagem" data-status="turnos" role="status" aria-live="polite"></p>
@@ -56,22 +56,82 @@
 
       <section class="dashboard-panel" data-panel="departamentos" aria-labelledby="titulo-departamentos" hidden>
         <div class="barra-lista">
-          <h2 id="titulo-departamentos">Departamentos cadastrados</h2>
+          <h2 id="titulo-departamentos">Departamentos disponíveis</h2>
           <button type="button" data-refresh="departamentos">Atualizar</button>
         </div>
         <p class="mensagem" data-status="departamentos" role="status" aria-live="polite"></p>
         <div class="lista-usuarios" data-list="departamentos"></div>
+        <section class="detalhe-departamento" aria-labelledby="titulo-funcionarios-departamento">
+          <h2 id="titulo-funcionarios-departamento" data-selected-department>Funcionários do departamento</h2>
+          <p class="mensagem" data-department-employees-status role="status" aria-live="polite">
+            Selecione um departamento para consultar os funcionários.
+          </p>
+          <div class="lista-usuarios" data-list="department-employees"></div>
+        </section>
       </section>
 
       <section class="dashboard-panel" data-panel="funcionarios" aria-labelledby="titulo-funcionarios" hidden>
         <div class="barra-lista">
           <h2 id="titulo-funcionarios">Funcionários cadastrados</h2>
-          <button type="button" data-refresh="funcionarios">Atualizar</button>
+          <div class="acoes-lista">
+            <button type="button" class="botao-secundario" data-refresh="funcionarios">Atualizar</button>
+            <button type="button" data-add-employee>Adicionar Funcionário</button>
+          </div>
         </div>
         <p class="mensagem" data-status="funcionarios" role="status" aria-live="polite"></p>
         <div class="lista-usuarios" data-list="funcionarios"></div>
       </section>
     </main>
   </div>
+
+  <dialog class="modal-funcionario" data-employee-dialog aria-labelledby="titulo-modal-funcionario">
+    <form data-employee-form>
+      <div class="modal-cabecalho">
+        <h2 id="titulo-modal-funcionario" data-employee-form-title>Novo funcionário</h2>
+        <button type="button" class="botao-fechar" data-close-employee-dialog aria-label="Fechar formulário">×</button>
+      </div>
+
+      <div class="grade-campos-funcionario">
+        <label class="campo-funcionario" for="funcionario-nome">
+          Nome completo
+          <input id="funcionario-nome" name="nome" type="text" maxlength="120" autocomplete="name" required>
+        </label>
+        <label class="campo-funcionario" for="funcionario-cpf">
+          CPF
+          <input id="funcionario-cpf" name="cpf" type="text" maxlength="14" autocomplete="off" required>
+        </label>
+        <label class="campo-funcionario" for="funcionario-telefone">
+          Telefone
+          <input id="funcionario-telefone" name="telefone" type="tel" maxlength="20" autocomplete="tel" required>
+        </label>
+        <label class="campo-funcionario" for="funcionario-endereco">
+          Endereço
+          <input id="funcionario-endereco" name="endereco" type="text" maxlength="255" autocomplete="street-address" required>
+        </label>
+        <label class="campo-funcionario" for="funcionario-funcao">
+          Função
+          <input id="funcionario-funcao" name="funcao" type="text" maxlength="120" required>
+        </label>
+        <label class="campo-funcionario" for="funcionario-turno">
+          Turno
+          <select id="funcionario-turno" name="turno" required>
+            <option value="">Selecione um turno</option>
+          </select>
+        </label>
+        <label class="campo-funcionario" for="departamento">
+          Departamento
+          <select id="departamento" name="departamento" required>
+            <option value="">Selecione um departamento</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="mensagem" data-employee-form-status role="status" aria-live="polite"></p>
+      <div class="acoes-formulario">
+        <button type="button" class="botao-secundario" data-close-employee-dialog>Cancelar</button>
+        <button type="submit" data-employee-submit>Salvar funcionário</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

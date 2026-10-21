@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 import java.time.LocalDateTime;
 
@@ -19,9 +21,17 @@ public class Funcionario {
 
         private String nome;
 
-        //private Departamento departamento;
+        private String cpf;
 
-        //private  Turno turno;
+        private String telefone;
+
+        private String endereco;
+
+        private String turno;
+
+        @ManyToOne
+        @JoinColumn(name = "departamento_id")
+        private Departamento departamento;
 
         private String funcao;
 
@@ -46,12 +56,40 @@ public class Funcionario {
                 this.nome = nome;
         }
 
-        /*public Turno getTurno() {
+        public String getCpf() {
+                return cpf;
+        }
+        public void setCpf(String cpf) {
+                this.cpf = cpf;
+        }
+
+        public String getTelefone() {
+                return telefone;
+        }
+        public void setTelefone(String telefone) {
+                this.telefone = telefone;
+        }
+
+        public String getEndereco() {
+                return endereco;
+        }
+        public void setEndereco(String endereco) {
+                this.endereco = endereco;
+        }
+
+        public String getTurno() {
                 return turno;
         }
-        public void setTurno(Turno turno) {
+        public void setTurno(String turno) {
                 this.turno = turno;
-        }*/
+        }
+
+        public Departamento getDepartamento() {
+                return departamento;
+        }
+        public void setDepartamento(Departamento departamento) {
+                this.departamento = departamento;
+        }
 
         public String getFuncao() {
                 return funcao;
@@ -59,13 +97,6 @@ public class Funcionario {
         public void setFuncao(String funcao) {
                 this.funcao = funcao;
         }
-
-        /*public Departamento getDepartamento() {
-                return departamento;
-        }
-        public void setDepartamento(Departamento departamento) {
-                this.departamento = departamento;
-        }*/
 
         public LocalDateTime getDataCadastro() {
                 return dataCadastro;

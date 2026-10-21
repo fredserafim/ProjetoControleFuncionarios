@@ -119,6 +119,18 @@ const api = {
     return this.get("/funcionario");
   },
 
+  buscarFuncionarioPorId(id) {
+    return this.get(`/funcionario/${encodeURIComponent(id)}`);
+  },
+
+  cadastrarFuncionario(funcionario) {
+    return this.post("/funcionario", funcionario);
+  },
+
+  atualizarFuncionario(id, funcionario) {
+    return this.put(`/funcionario/${encodeURIComponent(id)}`, funcionario);
+  },
+
   listarDepartamentos() {
     return this.get("/departamentos");
   },

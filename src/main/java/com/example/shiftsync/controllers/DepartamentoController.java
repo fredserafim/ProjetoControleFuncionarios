@@ -53,7 +53,7 @@ public class DepartamentoController {
     public ResponseEntity<DepartamentoResponse> cadastrarDepartamento(@RequestBody Departamento departamentoRequest){
         Departamento departamentoBanco = new Departamento();
 
-        departamentoBanco.setSetor(departamentoRequest.getSetor());
+        departamentoBanco.setDepartamento(departamentoRequest.getDepartamento());
         departamentoBanco.setStatus(departamentoRequest.getStatus());
         departamentoBanco.setDataCadastro(departamentoBanco.getDataCadastro());
 
@@ -72,7 +72,7 @@ public class DepartamentoController {
         Departamento departamentoBanco = departamentoRepository.findById(id).orElse(null);
 
         if(departamentoBanco != null){
-            departamentoBanco.setSetor(departamentoRequest.getSetor());
+            departamentoBanco.setDepartamento(departamentoRequest.getDepartamento());
             departamentoBanco.setDataAtualizacao(LocalDateTime.now());
             departamentoBanco.setStatus(departamentoRequest.getStatus());
             departamentoRepository.save(departamentoBanco);

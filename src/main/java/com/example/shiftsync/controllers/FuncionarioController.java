@@ -3,12 +3,14 @@ package com.example.shiftsync.controllers;
 import com.example.shiftsync.DTO.*;
 import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.entities.Funcionario;
-import com.example.shiftsync.entities.Usuario;
+import com.example.shiftsync.repository.DepartamentoRepository;
 import com.example.shiftsync.repository.FuncionarioRepository;
-import com.example.shiftsync.repository.UsuarioRepository;
+import com.example.shiftsync.services.FuncionarioService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,16 +24,24 @@ public class FuncionarioController {
     @Autowired
     private FuncionarioRepository funcionarioRepository;
 
+    @Autowired
+    private DepartamentoRepository departamentoRepository;
+
+    @Autowired
+    private FuncionarioService funcionarioService;
 
     @GetMapping
-    public List<Funcionario> consultFuncionario(){
-        return funcionarioRepository.findAll();
+    public List<FuncionarioResponse> consultFuncionario(){
+        return funcionarioRepository.findAll().stream()
+                .map(FuncionarioResponse::new)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public String consultFuncionarioId(@PathVariable Long id) {
-        Funcionario funcionarioId = new Funcionario();
-        return "funcionarioId";
+    public ResponseEntity<FuncionarioResponse> consultFuncionarioId(@PathVariable Long id) {
+        return funcionarioRepository.findById(id)
+                .map(funcionario -> ResponseEntity.ok(new FuncionarioResponse(funcionario)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/nome")
@@ -65,10 +75,15 @@ public class FuncionarioController {
     }*/
 
     @PostMapping
-    public ResponseEntity<FuncionarioResponse> cadastrarFuncionario(@RequestBody Funcionario funcionarioRequest) {
+    public ResponseEntity<FuncionarioResponse> cadastrarFuncionario(@RequestBody FuncionarioRequest funcionarioRequest) {
         Funcionario funcionarioBanco = new Funcionario();
 
         funcionarioBanco.setNome(funcionarioRequest.getNome());
+        funcionarioBanco.setCpf(funcionarioRequest.getCpf());
+        funcionarioBanco.setTelefone(funcionarioRequest.getTelefone());
+        funcionarioBanco.setEndereco(funcionarioRequest.getEndereco());
+        funcionarioBanco.setTurno(funcionarioRequest.getTurno());
+        funcionarioBanco.setDepartamento(resolverDepartamento(funcionarioRequest));
         funcionarioBanco.setFuncao(funcionarioRequest.getFuncao());
         funcionarioBanco.setDataCadastro(LocalDateTime.now());
         funcionarioBanco.setStatus("A");
@@ -77,27 +92,34 @@ public class FuncionarioController {
         funcionarioRepository.save(funcionarioBanco);
 
         return ResponseEntity.ok(new FuncionarioResponse(funcionarioBanco.getId(),
-                "Cadastro com sucesso!"));
+                "Cadastro com sucesso!", funcionarioBanco.getCpf(), funcionarioBanco.getTelefone(),
+                funcionarioBanco.getEndereco(), funcionarioBanco.getDepartamento()));
     }
 
     @PutMapping("/{id}")// atualiza tudo
     public ResponseEntity <FuncionarioResponse>
     atualizarFuncionarioId(@PathVariable Long id, @RequestBody FuncionarioRequest funcionarioRequest){
-        // consulta no banco
-        Funcionario funcionarioBanco = funcionarioRepository.findById(id).orElse(null);
+        return funcionarioService.atualizarFuncionario(id, funcionarioRequest)
+                .map(funcionarioBanco -> ResponseEntity.ok(new FuncionarioResponse(funcionarioBanco)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 
-        if(funcionarioBanco != null){
-            funcionarioBanco.setNome(funcionarioRequest.getNome());
-            funcionarioBanco.setFuncao(funcionarioRequest.getFuncao());
-            funcionarioBanco.setDataAtualizacao(LocalDateTime.now());
-            funcionarioBanco.setStatus(funcionarioRequest.getStatus());
-            funcionarioRepository.save(funcionarioBanco);
-
-            return ResponseEntity.ok(new FuncionarioResponse(funcionarioBanco.getId(),
-                    "usuarioAtualizado com sucesso!"));
-
+    private Departamento resolverDepartamento(FuncionarioRequest funcionarioRequest) {
+        if (funcionarioRequest.getDepartamentoId() != null) {
+            return departamentoRepository.findById(funcionarioRequest.getDepartamentoId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "Departamento não encontrado."));
         }
-        return ResponseEntity.notFound().build();
+
+        String nomeDepartamento = funcionarioRequest.getDepartamento();
+        if (nomeDepartamento == null || nomeDepartamento.isBlank()) {
+            return null;
+        }
+
+        return departamentoRepository.findBySetorIgnoreCase(nomeDepartamento.trim())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Departamento não encontrado: " + nomeDepartamento));
     }
 
     @PatchMapping("/{id}/status")// atualiza pontualmente

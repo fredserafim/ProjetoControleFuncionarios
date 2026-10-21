@@ -14,7 +14,8 @@ public class Departamento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String setor;
+
+    private String departamento;
 
     @OneToMany
     private List<Turno> turno;
@@ -33,11 +34,12 @@ public class Departamento {
         this.id = id;
     }
 
-    public String getSetor(){
-        return this.setor;
+    public String getDepartamento() {
+        return departamento;
     }
-    public void setSetor(String setor) {
-        this.setor = setor;
+
+    public void setDepartamento() {
+        this.departamento = departamento;
     }
 
     public List<Turno> getTurno() {
@@ -47,12 +49,12 @@ public class Departamento {
         this.turno = turno;
     }
 
-//    public Funcionario getFuncionario() {
-//        return funcionario;
-//    }
-//    public void setFuncionario(Funcionario funcionario) {
-//        this.funcionario = funcionario;
-//    }
+    //public Funcionario getFuncionario() {
+     //   return funcionario;
+    //}
+    //public void setFuncionario(Funcionario funcionario) {
+     //   this.funcionario = funcionario;
+    //}  devo fazer um ontomany
 
     public LocalDateTime getDataCadastro() {
         return dataCadastro;

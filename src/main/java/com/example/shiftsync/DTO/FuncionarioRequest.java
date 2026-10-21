@@ -1,29 +1,40 @@
 package com.example.shiftsync.DTO;
 
-import com.example.shiftsync.entities.Departamento;
-import com.example.shiftsync.entities.Turno;
-
 public class FuncionarioRequest {
 
     public FuncionarioRequest() {
     }
 
-    public FuncionarioRequest(Long id, String nome, Departamento departamento, Turno turno, String funcao) {
+    public FuncionarioRequest(Long id, String nome, String departamento,
+         String turno, String funcao,String cpf, String telefone, String endereco) {
         this.id = id;
         this.nome = nome;
         this.departamento = departamento;
         this.turno = turno;
         this.funcao = funcao;
-        this.status = status;
+        this.cpf = cpf;
+        this.telefone = telefone;
+        this.endereco = endereco;
     }
+
+    
 
     private Long id;
 
     private String nome;
 
-    private Departamento departamento;
+    private String cpf;
 
-    private Turno turno;
+    private String telefone;
+
+    private String endereco;
+
+    private Long departamentoId;
+
+    // Retained to accept requests from clients that still submit the department name.
+    private String departamento;
+
+    private String turno;
 
     private String funcao;
 
@@ -45,19 +56,51 @@ public class FuncionarioRequest {
         this.nome = nome;
     }
 
-    public Departamento getDepartamento() {
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public String getEndereco() {
+        return endereco;
+    }
+
+    public void setEndereco(String endereco) {
+        this.endereco = endereco;
+    }
+
+    public String getDepartamento() {
         return departamento;
     }
 
-    public void setDepartamento(Departamento departamento) {
+    public void setDepartamento(String departamento) {
         this.departamento = departamento;
     }
 
-    public Turno getTurno() {
+    public Long getDepartamentoId() {
+        return departamentoId;
+    }
+
+    public void setDepartamentoId(Long departamentoId) {
+        this.departamentoId = departamentoId;
+    }
+
+    public String getTurno() {
         return turno;
     }
 
-    public void setTurno(Turno turno) {
+    public void setTurno(String turno) {
         this.turno = turno;
     }
 
