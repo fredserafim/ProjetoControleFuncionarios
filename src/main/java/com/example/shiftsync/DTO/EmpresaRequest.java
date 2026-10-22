@@ -41,7 +41,7 @@ public class EmpresaRequest {
         return inscricaoEstadual;
     }
 
-    public void setInsricaoEstadual(String inscricaoEstadual) {
+    public void setInscricaoEstadual(String inscricaoEstadual) {
         this.inscricaoEstadual = inscricaoEstadual;
     }
 }

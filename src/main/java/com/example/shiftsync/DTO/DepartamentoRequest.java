@@ -39,7 +39,7 @@ public class DepartamentoRequest {
         return departamento;
     }
 
-    public void setDepartamento() {
+    public void setDepartamento(String departamento) {
         this.departamento = departamento;
     }
 

@@ -16,16 +16,21 @@ async function requisicao(caminho, opcoes = {}) {
   let resposta;
 
   try {
-    resposta = await fetch(url, {
-      ...opcoes,
-      headers: {
-        Accept: "application/json",
-        ...(opcoes.body ? { "Content-Type": "application/json" } : {}),
-        ...opcoes.headers
-      }
-    });
+    const token = localStorage.getItem("token");
+    const cabecalhos = new Headers(opcoes.headers || {});
+    cabecalhos.set("Accept", "application/json");
+
+    if (opcoes.body) {
+      cabecalhos.set("Content-Type", "application/json");
+    }
+    if (token && caminho !== "/login") {
+      cabecalhos.set("Authorization", `Bearer ${token}`);
+    }
+
+    resposta = await fetch(url, { ...opcoes, headers: cabecalhos });
   } catch (erro) {
-    const mensagem = "Não foi possível conectar ao servidor. Verifique se a API está ativa e se o CORS permite este endereço.";
+    const mensagem =
+      "Não foi possível conectar ao servidor. Verifique se a API está ativa e se o CORS permite este endereço.";
     console.error(`[API] Falha de conexão ou CORS em ${metodo} ${url}.`, erro);
     mostrarErroApi(mensagem);
 
@@ -48,13 +53,34 @@ async function requisicao(caminho, opcoes = {}) {
   if (!resposta.ok) {
     const mensagem = typeof dados === "string"
       ? dados
-      : dados?.mensagem || dados?.message;
-    const mensagemExibida = mensagem || `A API retornou um erro (HTTP ${resposta.status}).`;
-    console.error(`[API] Resposta de erro em ${metodo} ${url}: HTTP ${resposta.status}.`, dados);
+      : dados?.mensagem || dados?.message || dados?.detail;
+    const mensagemExibida =
+      mensagem || ({
+        400: "Os dados enviados são inválidos. Confira os campos e tente novamente.",
+        401: caminho === "/login"
+          ? "Login ou senha inválidos."
+          : "Sua sessão expirou. Entre novamente.",
+        403: "Você não tem permissão para realizar esta operação.",
+        404: "O registro solicitado não foi encontrado.",
+        409: "Este registro já existe ou conflita com outro cadastro.",
+        500: "O servidor encontrou um erro. Tente novamente mais tarde."
+      })[resposta.status]
+        || `A API retornou um erro (HTTP ${resposta.status}).`;
+
+    console.error(
+      `[API] Resposta de erro em ${metodo} ${url}: HTTP ${resposta.status}.`
+    );
+
+    if (resposta.status === 401 && caminho !== "/login") {
+      localStorage.removeItem("token");
+      window.location.replace("index.html?sessionExpired=1");
+    }
+
     mostrarErroApi(mensagemExibida);
 
     const erroResposta = new Error(mensagemExibida);
     erroResposta.name = "ApiResponseError";
+    erroResposta.status = resposta.status;
     throw erroResposta;
   }
 
@@ -133,6 +159,30 @@ const api = {
 
   listarDepartamentos() {
     return this.get("/departamentos");
+  },
+
+  buscarDepartamentoPorId(id) {
+    return this.get(`/departamentos/${encodeURIComponent(id)}`);
+  },
+
+  cadastrarDepartamento(departamento) {
+    return this.post("/departamentos", departamento);
+  },
+
+  atualizarDepartamento(id, departamento) {
+    return this.put(`/departamentos/${encodeURIComponent(id)}`, departamento);
+  },
+
+  alterarStatusDepartamento(id, dados) {
+    return this.patch(`/departamentos/${encodeURIComponent(id)}/status`, dados);
+  },
+
+  excluirDepartamento(id) {
+    return this.delete(`/departamentos/${encodeURIComponent(id)}`);
+  },
+
+  listarFuncionariosPorDepartamento(id) {
+    return this.get(`/funcionario/${encodeURIComponent(id)}/departamento`);
   },
 
   listarEmpresas() {

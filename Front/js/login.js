@@ -2,6 +2,11 @@ const formularioLogin = document.querySelector("#login-form");
 const mensagemLogin = document.querySelector("#mensagem-login");
 const botaoEntrar = document.querySelector("#botao-entrar");
 
+if (new URLSearchParams(window.location.search).has("sessionExpired")) {
+  mensagemLogin.classList.add("erro");
+  mensagemLogin.textContent = "Sua sessão expirou. Entre novamente.";
+}
+
 formularioLogin.addEventListener("submit", async (evento) => {
   evento.preventDefault();
 
@@ -20,14 +25,13 @@ formularioLogin.addEventListener("submit", async (evento) => {
   try {
     const resultado = await api.login(credenciais);
 
-    if (resultado.mensagem !== "Bem vindo") {
-      const mensagem = resultado.mensagem || "Login ou senha inválidos.";
-      console.warn("[Login] A API recusou a autenticação:", mensagem);
-      throw new Error(mensagem);
+    if (!resultado?.token) {
+      throw new Error("A API não retornou o token de autenticação.");
     }
 
+    localStorage.setItem("token", resultado.token);
     loginAceito = true;
-    mensagemLogin.textContent = resultado.mensagem;
+    mensagemLogin.textContent = resultado.mensagem || "Bem-vindo.";
     window.setTimeout(() => {
       window.location.href = "dashboard.html";
     }, 700);

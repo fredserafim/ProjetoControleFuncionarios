@@ -24,7 +24,7 @@
         <a class="menu-link" href="#funcionarios" data-menu-item="funcionarios" data-title="Funcionários" data-description="Consulte os funcionários cadastrados.">Funcionários</a>
       </nav>
 
-      <a class="sidebar-logout" href="index.html">Sair</a>
+      <a class="sidebar-logout" href="index.html" data-logout>Sair</a>
     </aside>
 
     <main class="dashboard-content">
@@ -56,8 +56,11 @@
 
       <section class="dashboard-panel" data-panel="departamentos" aria-labelledby="titulo-departamentos" hidden>
         <div class="barra-lista">
-          <h2 id="titulo-departamentos">Departamentos disponíveis</h2>
-          <button type="button" data-refresh="departamentos">Atualizar</button>
+          <h2 id="titulo-departamentos">Departamentos cadastrados</h2>
+          <div class="acoes-lista">
+            <button type="button" class="botao-secundario" data-refresh="departamentos">Atualizar</button>
+            <button type="button" data-add-department>Novo departamento</button>
+          </div>
         </div>
         <p class="mensagem" data-status="departamentos" role="status" aria-live="polite"></p>
         <div class="lista-usuarios" data-list="departamentos"></div>
@@ -130,6 +133,26 @@
       <div class="acoes-formulario">
         <button type="button" class="botao-secundario" data-close-employee-dialog>Cancelar</button>
         <button type="submit" data-employee-submit>Salvar funcionário</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal-departamento" data-department-dialog aria-labelledby="titulo-modal-departamento">
+    <form data-department-form>
+      <div class="modal-cabecalho">
+        <h2 id="titulo-modal-departamento" data-department-form-title>Novo departamento</h2>
+        <button type="button" class="botao-fechar" data-close-department-dialog aria-label="Fechar formulário">×</button>
+      </div>
+
+      <label class="campo-departamento" for="departamento-nome">
+        Nome do departamento
+        <input id="departamento-nome" name="departamento" type="text" required>
+      </label>
+
+      <p class="mensagem" data-department-form-status role="status" aria-live="polite"></p>
+      <div class="acoes-formulario">
+        <button type="button" class="botao-secundario" data-close-department-dialog>Cancelar</button>
+        <button type="submit" data-department-submit>Salvar departamento</button>
       </div>
     </form>
   </dialog>

@@ -38,7 +38,7 @@ public class Departamento {
         return departamento;
     }
 
-    public void setDepartamento() {
+    public void setDepartamento(String departamento) {
         this.departamento = departamento;
     }
 
@@ -63,7 +63,7 @@ public class Departamento {
         this.dataCadastro = dataCadastro;
     }
 
-    public LocalDateTime getDataAtualização() {
+    public LocalDateTime getDataAtualizacao() {
         return dataAtualizacao;
     }
     public void setDataAtualizacao(LocalDateTime dataAtualização) {

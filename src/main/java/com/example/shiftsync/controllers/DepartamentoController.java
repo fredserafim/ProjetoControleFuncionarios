@@ -2,9 +2,7 @@ package com.example.shiftsync.controllers;
 
 import com.example.shiftsync.DTO.*;
 import com.example.shiftsync.entities.Departamento;
-import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.DepartamentoRepository;
-import com.example.shiftsync.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,108 +17,73 @@ public class DepartamentoController {
     @Autowired
     private DepartamentoRepository departamentoRepository;
 
-
     @GetMapping
-    public List<Departamento> consultDepartamento(){
-        return departamentoRepository.findAll();
+    public List<DepartamentoResponse> consultDepartamento(){
+        return departamentoRepository.findAll().stream()
+                .map(DepartamentoResponse::new)
+                .toList();
     }
-
-    //@GetMapping
-    //public String consultDepartamentoUsuario(){return "tudo";}
 
     @GetMapping("/{id}")
-    public String consultDepartamentoId(@PathVariable Long id) {
-        Departamento departamentoId = new Departamento();
-        return "departamentoId";
+    public ResponseEntity<DepartamentoResponse> consultDepartamentoId(@PathVariable Long id) {
+        return departamentoRepository.findById(id)
+                .map(departamento -> ResponseEntity.ok(new DepartamentoResponse(departamento)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
-    @GetMapping("/{id}/setor")
-    public String consultDepartamentoSetor(@PathVariable Long id){
-        Departamento departamentoSetor = new Departamento();
-        return "departamentoSetor";
-    }
-
-    @GetMapping("/turno")
-    public String consultaDepartametoPor(@PathVariable Long turno){
-        Departamento departamentoTurno = new Departamento();
-        return "departamentoTurno" ;
-    }
-
-
-
 
     @PostMapping
-    public ResponseEntity<DepartamentoResponse> cadastrarDepartamento(@RequestBody Departamento departamentoRequest){
+    public ResponseEntity<DepartamentoResponse> cadastrarDepartamento(
+            @RequestBody DepartamentoRequest departamentoRequest) {
         Departamento departamentoBanco = new Departamento();
-
         departamentoBanco.setDepartamento(departamentoRequest.getDepartamento());
-        departamentoBanco.setStatus(departamentoRequest.getStatus());
-        departamentoBanco.setDataCadastro(departamentoBanco.getDataCadastro());
-
+        departamentoBanco.setStatus(departamentoRequest.getStatus() == null
+                ? "A" : departamentoRequest.getStatus());
+        departamentoBanco.setDataCadastro(LocalDateTime.now());
         departamentoRepository.save(departamentoBanco);
 
-        return ResponseEntity.ok(new DepartamentoResponse(departamentoBanco.getId(),
-                "Cadastro com sucesso!"));
+        DepartamentoResponse resposta = new DepartamentoResponse(departamentoBanco);
+        resposta.setMensagem("Cadastro com sucesso!");
+        return ResponseEntity.ok(resposta);
     }
 
-
-
-    @PutMapping("/{id}")// atualiza tudo
-    public ResponseEntity <DepartamentoResponse>
-    atualizarDepartamento(@PathVariable Long id, @RequestBody DepartamentoRequest departamentoRequest){
-        // consulta no banco
-        Departamento departamentoBanco = departamentoRepository.findById(id).orElse(null);
-
-        if(departamentoBanco != null){
+    @PutMapping("/{id}")
+    public ResponseEntity<DepartamentoResponse> atualizarDepartamento(
+            @PathVariable Long id, @RequestBody DepartamentoRequest departamentoRequest) {
+        return departamentoRepository.findById(id).map(departamentoBanco -> {
             departamentoBanco.setDepartamento(departamentoRequest.getDepartamento());
             departamentoBanco.setDataAtualizacao(LocalDateTime.now());
+            if (departamentoRequest.getStatus() != null) {
+                departamentoBanco.setStatus(departamentoRequest.getStatus());
+            }
+            departamentoRepository.save(departamentoBanco);
+            DepartamentoResponse resposta = new DepartamentoResponse(departamentoBanco);
+            resposta.setMensagem("Departamento atualizado com sucesso!");
+            return ResponseEntity.ok(resposta);
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<DepartamentoResponse> atualizarStatusDepartamento(
+            @PathVariable Long id, @RequestBody AtualizaStatusDepartamentoRequest departamentoRequest) {
+        Departamento departamentoBanco = departamentoRepository.findById(id).orElse(null);
+        if (departamentoBanco != null) {
             departamentoBanco.setStatus(departamentoRequest.getStatus());
             departamentoRepository.save(departamentoBanco);
-
-            return ResponseEntity.ok(new DepartamentoResponse(departamentoBanco.getId(),
-                    "usuarioAtualizado com sucesso!"));
-
+            return ResponseEntity.ok(new DepartamentoResponse(
+                    departamentoBanco.getId(), "Status atualizado com sucesso!"));
         }
         return ResponseEntity.notFound().build();
     }
 
-    @PatchMapping("/{id}/status")// atualiza pontualmente
-    public ResponseEntity<DepartamentoResponse> atualizarStatusDepartamento(@PathVariable Long id, @RequestBody AtualizaStatusDepartamentoRequest departamentoRequest){
-
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> atualizarStatusDepartamento(@PathVariable Long id) {
         Departamento departamentoBanco = departamentoRepository.findById(id).orElse(null);
-
-        if(departamentoBanco != null){
-            departamentoBanco.setStatus(departamentoRequest.getStatus());
-            departamentoRepository.save(departamentoBanco);
-
-            return ResponseEntity.ok(new DepartamentoResponse(departamentoBanco.getId(), "Status atualizado com sucesso!"));
-
-        }
-        return ResponseEntity.notFound().build();
-    }
-
-
-    @DeleteMapping("/{id}")// deletar
-    public ResponseEntity <DepartamentoResponse>
-    atualizarStatusDepartamento(@PathVariable Long id){
-        // consulta no banco
-        Departamento departamentoBanco = departamentoRepository.findById(id).orElse(null);
-
-        if(departamentoBanco != null){
+        if (departamentoBanco != null) {
             departamentoBanco.setStatus("D");
             departamentoRepository.save(departamentoBanco);
-            //usuarioRepository.delete(usuarioBanco);
-
             return ResponseEntity.ok().build();
-
         }
         return ResponseEntity.notFound().build();
     }
-
-
-
-
-
 }
-
 

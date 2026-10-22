@@ -2,6 +2,8 @@ package com.example.shiftsync.DTO;
 
 import com.example.shiftsync.entities.Usuario;
 
+import java.time.LocalDateTime;
+
 public class UsuarioConsultaResponse {
 
     public UsuarioConsultaResponse(){}
@@ -9,7 +11,10 @@ public class UsuarioConsultaResponse {
         this.cpf = usuario.getCpf();
         this.nome = usuario.getNome();
         this.dataNascimento = usuario.getDataNascimento();
+        this.dataCadastro = usuario.getDataCadastro();
+        this.dataAtualizacao = usuario.getDataAtualizacao();
         this.id = usuario.getId();
+        this.status = usuario.getStatus();
         if (usuario.getEmpresa()!=null){
             this.empresa_id = usuario.getEmpresa().getId();
             this.razaoSocialEmpresa = usuario.getEmpresa().getRazaoSocial();
@@ -25,9 +30,15 @@ public class UsuarioConsultaResponse {
 
     private String dataNascimento;
 
+    private LocalDateTime dataCadastro;
+
+    private LocalDateTime dataAtualizacao;
+
     private String razaoSocialEmpresa;
 
     private Long id;
+
+    private String status;
 
 
 
@@ -63,6 +74,22 @@ public class UsuarioConsultaResponse {
         this.dataNascimento = dataNascimento;
     }
 
+    public LocalDateTime getDataCadastro() {
+        return dataCadastro;
+    }
+
+    public void setDataCadastro(LocalDateTime dataCadastro) {
+        this.dataCadastro = dataCadastro;
+    }
+
+    public LocalDateTime getDataAtualizacao() {
+        return dataAtualizacao;
+    }
+
+    public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
+        this.dataAtualizacao = dataAtualizacao;
+    }
+
     public String getRazaoSocialEmpresa() {
         return razaoSocialEmpresa;
     }
@@ -77,5 +104,13 @@ public class UsuarioConsultaResponse {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

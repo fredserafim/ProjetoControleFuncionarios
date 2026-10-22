@@ -4,15 +4,12 @@ import com.example.shiftsync.DTO.AtualizaStatusUsuarioRequest;
 import com.example.shiftsync.DTO.UsuarioConsultaResponse;
 import com.example.shiftsync.DTO.UsuarioRequest;
 import com.example.shiftsync.DTO.UsuarioResponse;
-import com.example.shiftsync.entities.Departamento;
-import com.example.shiftsync.entities.Funcionario;
-import com.example.shiftsync.entities.Turno;
 import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.EmpresaRepository;
 import com.example.shiftsync.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.PathMatcher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -30,6 +27,9 @@ public class UsuarioController {
     @Autowired
     private EmpresaRepository empresaRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
 
     @GetMapping
      public List<UsuarioConsultaResponse> consultusUario(){
@@ -38,36 +38,24 @@ public class UsuarioController {
                      .map(UsuarioConsultaResponse::new).toList();
     }
 
-    @GetMapping("/Id2/{id}")
-    public String consultUsuarioPorId2 (@PathVariable Long id){
-        return"usuario por id"+id;
-    }
-
-    @GetMapping("/empresa/{empresaid}")
-    public String consultaEmpresa(@PathVariable Long empresaid){
-        return"empresa " + empresaid;
-
-    }
-
     @GetMapping("/{id}")
-    public  ResponseEntity<Usuario> consultUsuarioPorId(@PathVariable Long id) {
+    public ResponseEntity<UsuarioConsultaResponse> consultUsuarioPorId(@PathVariable Long id) {
         var usuario = usuarioRepository.findById(id).orElse(null);
 
         if(usuario == null){
             return  ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(usuario);
-    }
-
-    @GetMapping("/empresa/{empresaId}")
-    public Usuario consultEmpresaId (@PathVariable Long empresaId){
-        Usuario usuarioConstrutorCompleto = new Usuario("Jhan","06487941999","05/01/1190");
-
-        return usuarioConstrutorCompleto;
+        return ResponseEntity.ok(new UsuarioConsultaResponse(usuario));
     }
 
     @PostMapping
     public ResponseEntity<UsuarioResponse> cadastrarUsuario(@RequestBody UsuarioRequest usuarioRequest){
+
+        if (usuarioRequest.getEmpresa_id() == null
+                || usuarioRequest.getSenha() == null
+                || usuarioRequest.getSenha().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
 
         var empresaBanco = empresaRepository.findById(usuarioRequest.getEmpresa_id()).orElse(null);
 
@@ -78,9 +66,8 @@ public class UsuarioController {
         usuarioBanco.setNome(usuarioRequest.getNome());
         usuarioBanco.setCpf(usuarioRequest.getCpf());
         usuarioBanco.setDataNascimento(usuarioRequest.getDataNascimento());
-        usuarioBanco.setSenha(usuarioRequest.getSenha());
+        usuarioBanco.setSenha(passwordEncoder.encode(usuarioRequest.getSenha()));
         usuarioBanco.setDataCadastro(LocalDateTime.now());
-        usuarioBanco.setSenha(usuarioRequest.getSenha());
         usuarioBanco.setEmpresa(empresaBanco);
         usuarioBanco.setStatus("A");
 
@@ -94,6 +81,9 @@ public class UsuarioController {
     @PutMapping("/{id}")// atualiza tudo
     public ResponseEntity <UsuarioResponse>
     atualizarUsuario(@PathVariable Long id, @RequestBody UsuarioRequest usuarioRequest){
+        if (usuarioRequest.getEmpresa_id() == null) {
+            return ResponseEntity.badRequest().build();
+        }
         // consulta no banco
         Usuario usuarioBanco = usuarioRepository.findById(id).orElse(null);
 
@@ -110,7 +100,9 @@ public class UsuarioController {
             usuarioBanco.setCpf(usuarioRequest.getCpf());
             usuarioBanco.setDataNascimento(usuarioRequest.getDataNascimento());
             usuarioBanco.setDataAtualizacao(LocalDateTime.now());
-            usuarioBanco.setSenha(usuarioRequest.getSenha());
+            if (usuarioRequest.getSenha() != null && !usuarioRequest.getSenha().isBlank()) {
+                usuarioBanco.setSenha(passwordEncoder.encode(usuarioRequest.getSenha()));
+            }
             usuarioRepository.save(usuarioBanco);
 
             return ResponseEntity.ok(new UsuarioResponse(usuarioBanco.getId(),

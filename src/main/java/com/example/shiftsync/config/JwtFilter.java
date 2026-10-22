@@ -3,6 +3,7 @@ package com.example.shiftsync.config;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,37 +29,42 @@ public class JwtFilter  extends OncePerRequestFilter {
 
         String caminho = request.getRequestURI();
 
-        if(caminho.equals("/longin")
+        if (request.getMethod().equals("OPTIONS")
+                || caminho.equals("/login")
                 || caminho.startsWith("/swagger-ui")
                 || caminho.startsWith("/webjars")
                 || caminho.startsWith("/swagger-resources")
-                || caminho.startsWith("/v3/api.docs")
-                ){
+                || caminho.startsWith("/v3/api-docs")){
             filterChain.doFilter(request,response);
             return;
         }
         String headerToken = request.getHeader("Authorization");
 
-        if(headerToken!=null && headerToken.startsWith("Bearer")){
+        if (headerToken == null || !headerToken.startsWith("Bearer ")
+                || headerToken.substring(7).isBlank()) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(
+                    "{\"mensagem\":\"Token inválido ou expirado. Faça login novamente.\"}");
+            return;
+        }
 
-            String token = headerToken.replace("Bearer ","");
-
+        try {
             Algorithm algorithm = Algorithm.HMAC256(secret);
-
             JWTVerifier verifier = JWT.require(algorithm)
                     .withIssuer(emissor)
                     .build();
-
-            var resultado = verifier.verify(token);
-
-            System.out.println(resultado.getSubject());
-
-
-        }else{
+            verifier.verify(headerToken.substring(7));
+        } catch (JWTVerificationException exception) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Token invalido");
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().write(
+                    "{\"mensagem\":\"Token inválido ou expirado. Faça login novamente.\"}");
             return;
         }
+
         filterChain.doFilter(request,response);
 
     }

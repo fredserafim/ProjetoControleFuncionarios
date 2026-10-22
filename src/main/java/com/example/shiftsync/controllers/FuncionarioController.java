@@ -44,35 +44,12 @@ public class FuncionarioController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/nome")
-    public String consultFuncionarioNome(@PathVariable Long nome) {
-        Funcionario funcionarioNome = new Funcionario();
-        return "funcionarioNome";
-    }
-
-    /*@GetMapping("/turno")
-    public String consultFuncionarioTurno(@PathVariable Long turno) {
-        Funcionario funcionarioTurno = new Funcionario();
-        return "funcionarioTurno";
-    }*/
-
-    @GetMapping("/funcao")
-    public String consultFuncionarioFuncao(@PathVariable Long funcao) {
-        Funcionario funcionarioFuncao = new Funcionario();
-        return "funcionarioFuncao";
-    }
-
     @GetMapping("/{id}/departamento")
-    public List<Funcionario> consultaFuncionarioPorDepartamento(@PathVariable Long id){
-        List<Funcionario> departamentoFuncionario = List.of();
-        return departamentoFuncionario;
+    public List<FuncionarioResponse> consultaFuncionarioPorDepartamento(@PathVariable Long id){
+        return funcionarioRepository.findByDepartamento_Id(id).stream()
+                .map(FuncionarioResponse::new)
+                .toList();
     }
-
-    /*@GetMapping("/Departamento")
-    public String consultFuncionarioDepartamento(@PathVariable Long departamento) {
-        Departamento funcionarioDepartamento = new Departamento();
-        return "funcionarioDepartamento";
-    }*/
 
     @PostMapping
     public ResponseEntity<FuncionarioResponse> cadastrarFuncionario(@RequestBody FuncionarioRequest funcionarioRequest) {
@@ -91,9 +68,9 @@ public class FuncionarioController {
         //salvando no banco
         funcionarioRepository.save(funcionarioBanco);
 
-        return ResponseEntity.ok(new FuncionarioResponse(funcionarioBanco.getId(),
-                "Cadastro com sucesso!", funcionarioBanco.getCpf(), funcionarioBanco.getTelefone(),
-                funcionarioBanco.getEndereco(), funcionarioBanco.getDepartamento()));
+        FuncionarioResponse resposta = new FuncionarioResponse(funcionarioBanco);
+        resposta.setMensagem("Cadastro com sucesso!");
+        return ResponseEntity.ok(resposta);
     }
 
     @PutMapping("/{id}")// atualiza tudo
@@ -113,10 +90,11 @@ public class FuncionarioController {
 
         String nomeDepartamento = funcionarioRequest.getDepartamento();
         if (nomeDepartamento == null || nomeDepartamento.isBlank()) {
-            return null;
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Selecione ou cadastre um departamento válido.");
         }
 
-        return departamentoRepository.findBySetorIgnoreCase(nomeDepartamento.trim())
+        return departamentoRepository.findByDepartamentoIgnoreCase(nomeDepartamento.trim())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Departamento não encontrado: " + nomeDepartamento));

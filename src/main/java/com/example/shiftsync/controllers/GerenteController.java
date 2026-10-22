@@ -1,9 +1,8 @@
 package com.example.shiftsync.controllers;
 
 import com.example.shiftsync.entities.Gerente;
-import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.GerenteRepository;
-import com.example.shiftsync.repository.UsuarioRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,5 +27,9 @@ public class GerenteController {
 
 
     @GetMapping("/{gerentesId}")
-    public String consultIdGerentes(@PathVariable Long gerentesId) {return " usuario id" + gerentesId;}
+    public ResponseEntity<Gerente> consultIdGerentes(@PathVariable Long gerentesId) {
+        return gerenteRepository.findById(gerentesId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 }

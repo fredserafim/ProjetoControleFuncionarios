@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 
 @RestController
@@ -27,6 +30,9 @@ public class LoginController {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Value("${spring.secret}")
     private String secret;
@@ -39,11 +45,14 @@ public class LoginController {
 
     @PostMapping
     public ResponseEntity<LoginResponse>logar(@RequestBody LoginRequest loginRequest){
+        if (loginRequest.getLogin() == null || loginRequest.getSenha() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
-        //Usuario usuarioBanco = usuarioRepository.findAll().stream().filter()
-
-
-        if(usuarioRepository.existsUsuarioByCpfAndSenha(loginRequest.getLogin(), loginRequest.getSenha())){
+        Usuario usuarioBanco = usuarioRepository.findByCpf(loginRequest.getLogin()).orElse(null);
+        if (usuarioBanco != null
+                && !"D".equalsIgnoreCase(usuarioBanco.getStatus())
+                && senhaCorreta(usuarioBanco, loginRequest.getSenha())) {
 
             LoginResponse loginResponse = new LoginResponse();
             loginResponse.setMensagem("Bem vindo");
@@ -63,6 +72,29 @@ public class LoginController {
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
+
+    private boolean senhaCorreta(Usuario usuario, String senhaInformada) {
+        if (senhaInformada == null || usuario.getSenha() == null) {
+            return false;
+        }
+
+        String senhaArmazenada = usuario.getSenha();
+        if (senhaArmazenada.startsWith("$2a$")
+                || senhaArmazenada.startsWith("$2b$")
+                || senhaArmazenada.startsWith("$2y$")) {
+            return passwordEncoder.matches(senhaInformada, senhaArmazenada);
+        }
+
+        boolean senhaLegadaValida = MessageDigest.isEqual(
+                senhaInformada.getBytes(StandardCharsets.UTF_8),
+                senhaArmazenada.getBytes(StandardCharsets.UTF_8));
+        if (senhaLegadaValida) {
+            usuario.setSenha(passwordEncoder.encode(senhaInformada));
+            usuarioRepository.save(usuario);
+        }
+        return senhaLegadaValida;
+    }
+
     private Instant gerarDataExpiracao() {
 
         LocalDateTime dataAtual = LocalDateTime.now();

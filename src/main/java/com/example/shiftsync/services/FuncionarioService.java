@@ -48,12 +48,12 @@ public class FuncionarioService {
         }
 
         String nomeDepartamento = request.getDepartamento();
-        if (nomeDepartamento.isBlank()) {
+        if (nomeDepartamento == null || nomeDepartamento.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "O departamento informado é inválido.");
         }
 
-        return departamentoRepository.findBySetorIgnoreCase(nomeDepartamento.trim())
+        return departamentoRepository.findByDepartamentoIgnoreCase(nomeDepartamento.trim())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Departamento não encontrado: " + nomeDepartamento));

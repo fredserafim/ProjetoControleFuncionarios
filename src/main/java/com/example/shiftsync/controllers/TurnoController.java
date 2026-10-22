@@ -2,9 +2,7 @@ package com.example.shiftsync.controllers;
 
 import com.example.shiftsync.DTO.*;
 import com.example.shiftsync.entities.Turno;
-import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.TurnoRopository;
-import com.example.shiftsync.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,32 +20,17 @@ public class TurnoController {
 
 
     @GetMapping
-    public List<Turno> consultTurno(){
-        return turnoRepository.findAll();
+    public List<TurnoConsultaResponse> consultTurno(){
+        return turnoRepository.findAll().stream()
+                .map(TurnoConsultaResponse::new)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public String consultTurnoId(@PathVariable Long id){
-        Turno turnoid = new Turno();
-        return "id";
-    }
-
-    @GetMapping("/horario")
-    public String consultTurnoHorario(@PathVariable Long horario){
-        Turno turnoHorario = new Turno();
-        return "turnoHorario";
-    }
-
-    @GetMapping("/periodo")
-    public String consultTurnoPeriodo(@PathVariable Long periodo){
-        Turno turnoPeriodo = new Turno();
-        return "turnoPeriodo";
-    }
-
-    @GetMapping("/horaExtra")
-    public String consultTurnoHoraExtra(@PathVariable Long horaExtra){
-        Turno turnoHoraExtra = new Turno();
-        return  "turnoHoraExtra";
+    public ResponseEntity<TurnoConsultaResponse> consultTurnoId(@PathVariable Long id){
+        return turnoRepository.findById(id)
+                .map(turno -> ResponseEntity.ok(new TurnoConsultaResponse(turno)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping

@@ -241,6 +241,7 @@ button:disabled {
 
 .acoes-lista {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -301,7 +302,8 @@ button:disabled {
   margin-top: 14px;
 }
 
-.modal-funcionario {
+.modal-funcionario,
+.modal-departamento {
   width: min(100% - 32px, 680px);
   max-height: calc(100vh - 32px);
   overflow-y: auto;
@@ -314,7 +316,8 @@ button:disabled {
   box-shadow: 0 18px 48px rgb(32 53 50 / 18%);
 }
 
-.modal-funcionario::backdrop {
+.modal-funcionario::backdrop,
+.modal-departamento::backdrop {
   background: rgb(25 61 52 / 55%);
 }
 
@@ -353,6 +356,14 @@ button:disabled {
   font-weight: 700;
 }
 
+.campo-departamento {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .campo-funcionario[hidden] {
   display: none;
 }
@@ -364,7 +375,8 @@ button:disabled {
 }
 
 .campo-funcionario input,
-.campo-funcionario select {
+.campo-funcionario select,
+.campo-departamento input {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
@@ -376,7 +388,8 @@ button:disabled {
 }
 
 .campo-funcionario input:focus-visible,
-.campo-funcionario select:focus-visible {
+.campo-funcionario select:focus-visible,
+.campo-departamento input:focus-visible {
   border-color: #28634f;
   outline: 3px solid rgb(40 99 79 / 18%);
 }
