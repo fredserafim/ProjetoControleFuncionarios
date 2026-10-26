@@ -303,6 +303,7 @@ button:disabled {
 }
 
 .modal-funcionario,
+.modal-turno,
 .modal-departamento {
   width: min(100% - 32px, 680px);
   max-height: calc(100vh - 32px);
@@ -317,6 +318,7 @@ button:disabled {
 }
 
 .modal-funcionario::backdrop,
+.modal-turno::backdrop,
 .modal-departamento::backdrop {
   background: rgb(25 61 52 / 55%);
 }
@@ -364,6 +366,54 @@ button:disabled {
   font-weight: 700;
 }
 
+.campo-turno {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.campo-turno[hidden] {
+  display: none;
+}
+
+.intervalo-jornada {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.intervalo-jornada .campo-turno {
+  margin-bottom: 0;
+}
+
+.campo-turno legend {
+  padding: 0;
+}
+
+.selecao-dias-semana {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 14px;
+  font-weight: 400;
+}
+
+.selecao-dias-semana label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selecao-dias-semana input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  margin: 0;
+  accent-color: #28634f;
+}
+
 .campo-funcionario[hidden] {
   display: none;
 }
@@ -376,7 +426,9 @@ button:disabled {
 
 .campo-funcionario input,
 .campo-funcionario select,
-.campo-departamento input {
+.campo-departamento input,
+.campo-turno input:not([type="checkbox"]),
+.campo-turno select {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
@@ -389,7 +441,9 @@ button:disabled {
 
 .campo-funcionario input:focus-visible,
 .campo-funcionario select:focus-visible,
-.campo-departamento input:focus-visible {
+.campo-departamento input:focus-visible,
+.campo-turno input:not([type="checkbox"]):focus-visible,
+.campo-turno select:focus-visible {
   border-color: #28634f;
   outline: 3px solid rgb(40 99 79 / 18%);
 }
@@ -408,6 +462,10 @@ button:disabled {
 
 @media (max-width: 560px) {
   .grade-campos-funcionario {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .intervalo-jornada {
     grid-template-columns: minmax(0, 1fr);
   }
 }

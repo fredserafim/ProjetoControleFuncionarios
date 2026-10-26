@@ -33,6 +33,12 @@ public class Funcionario {
         @JoinColumn(name = "departamento_id")
         private Departamento departamento;
 
+        @ManyToOne
+        @JoinColumn(name = "turno_jornada_id")
+        private Turno jornada;
+
+        private LocalDateTime jornadaVigenciaInicio;
+
         private String funcao;
 
         private LocalDateTime dataCadastro;
@@ -89,6 +95,20 @@ public class Funcionario {
         }
         public void setDepartamento(Departamento departamento) {
                 this.departamento = departamento;
+        }
+
+        public Turno getJornada() {
+                return jornada;
+        }
+        public void setJornada(Turno jornada) {
+                this.jornada = jornada;
+        }
+
+        public LocalDateTime getJornadaVigenciaInicio() {
+                return jornadaVigenciaInicio;
+        }
+        public void setJornadaVigenciaInicio(LocalDateTime jornadaVigenciaInicio) {
+                this.jornadaVigenciaInicio = jornadaVigenciaInicio;
         }
 
         public String getFuncao() {

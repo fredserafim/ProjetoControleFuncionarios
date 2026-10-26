@@ -1,5 +1,11 @@
 package com.example.shiftsync.DTO;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+
 public class TurnoRequest {
 
     public TurnoRequest() {
@@ -22,6 +28,28 @@ public class TurnoRequest {
     private Long horaExtra;
 
     private String status;
+
+    private String nome;
+
+    private String tipoJornada;
+
+    private String tipoEscala;
+
+    private List<DayOfWeek> diasSemana = new ArrayList<>();
+
+    private LocalTime horarioInicio;
+
+    private LocalTime horarioFim;
+
+    private List<IntervaloJornadaRequest> intervalos = new ArrayList<>();
+
+    private LocalDate dataReferencia;
+
+    private Integer cargaDiariaContratualMinutos;
+
+    private Integer cargaSemanalContratualMinutos;
+
+    private Integer cargaMensalPadraoMinutos;
 
 
     public Long getId() {
@@ -62,5 +90,94 @@ public class TurnoRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getTipoJornada() {
+        return tipoJornada;
+    }
+
+    public void setTipoJornada(String tipoJornada) {
+        this.tipoJornada = tipoJornada;
+    }
+
+    public String getTipoEscala() {
+        return tipoEscala;
+    }
+
+    public void setTipoEscala(String tipoEscala) {
+        this.tipoEscala = tipoEscala;
+    }
+
+    public List<DayOfWeek> getDiasSemana() {
+        return diasSemana;
+    }
+
+    public void setDiasSemana(List<DayOfWeek> diasSemana) {
+        this.diasSemana = diasSemana == null ? new ArrayList<>() : new ArrayList<>(diasSemana);
+    }
+
+    public LocalTime getHorarioInicio() {
+        return horarioInicio;
+    }
+
+    public void setHorarioInicio(LocalTime horarioInicio) {
+        this.horarioInicio = horarioInicio;
+    }
+
+    public LocalTime getHorarioFim() {
+        return horarioFim;
+    }
+
+    public void setHorarioFim(LocalTime horarioFim) {
+        this.horarioFim = horarioFim;
+    }
+
+    public List<IntervaloJornadaRequest> getIntervalos() {
+        return intervalos;
+    }
+
+    public void setIntervalos(List<IntervaloJornadaRequest> intervalos) {
+        this.intervalos = intervalos == null
+                ? new ArrayList<>() : new ArrayList<>(intervalos);
+    }
+
+    public LocalDate getDataReferencia() {
+        return dataReferencia;
+    }
+
+    public void setDataReferencia(LocalDate dataReferencia) {
+        this.dataReferencia = dataReferencia;
+    }
+
+    public Integer getCargaDiariaContratualMinutos() {
+        return cargaDiariaContratualMinutos;
+    }
+
+    public void setCargaDiariaContratualMinutos(Integer cargaDiariaContratualMinutos) {
+        this.cargaDiariaContratualMinutos = cargaDiariaContratualMinutos;
+    }
+
+    public Integer getCargaSemanalContratualMinutos() {
+        return cargaSemanalContratualMinutos;
+    }
+
+    public void setCargaSemanalContratualMinutos(Integer cargaSemanalContratualMinutos) {
+        this.cargaSemanalContratualMinutos = cargaSemanalContratualMinutos;
+    }
+
+    public Integer getCargaMensalPadraoMinutos() {
+        return cargaMensalPadraoMinutos;
+    }
+
+    public void setCargaMensalPadraoMinutos(Integer cargaMensalPadraoMinutos) {
+        this.cargaMensalPadraoMinutos = cargaMensalPadraoMinutos;
     }
 }

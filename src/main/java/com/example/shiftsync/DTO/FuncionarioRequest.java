@@ -1,5 +1,7 @@
 package com.example.shiftsync.DTO;
 
+import java.time.LocalDateTime;
+
 public class FuncionarioRequest {
 
     public FuncionarioRequest() {
@@ -39,6 +41,10 @@ public class FuncionarioRequest {
     private String funcao;
 
     private String status;
+
+    private Long turnoId;
+
+    private LocalDateTime turnoVigenciaInicio;
 
     public Long getId() {
         return id;
@@ -118,5 +124,21 @@ public class FuncionarioRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Long getTurnoId() {
+        return turnoId;
+    }
+
+    public void setTurnoId(Long turnoId) {
+        this.turnoId = turnoId;
+    }
+
+    public LocalDateTime getTurnoVigenciaInicio() {
+        return turnoVigenciaInicio;
+    }
+
+    public void setTurnoVigenciaInicio(LocalDateTime turnoVigenciaInicio) {
+        this.turnoVigenciaInicio = turnoVigenciaInicio;
     }
 }

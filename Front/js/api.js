@@ -141,6 +141,35 @@ const api = {
     return this.get("/turnos");
   },
 
+  buscarTurnoPorId(id) {
+    return this.get(`/turnos/${encodeURIComponent(id)}`);
+  },
+
+  consultarDiaDeTrabalho(id, data) {
+    return this.get(`/turnos/${encodeURIComponent(id)}/trabalha?data=${encodeURIComponent(data)}`);
+  },
+
+  listarOcorrenciasTurno(id, inicio, fim) {
+    const parametros = new URLSearchParams({ inicio, fim });
+    return this.get(`/turnos/${encodeURIComponent(id)}/ocorrencias?${parametros}`);
+  },
+
+  cadastrarTurno(turno) {
+    return this.post("/turnos", turno);
+  },
+
+  atualizarTurno(id, turno) {
+    return this.put(`/turnos/${encodeURIComponent(id)}`, turno);
+  },
+
+  alterarStatusTurno(id, dados) {
+    return this.patch(`/turnos/${encodeURIComponent(id)}/status`, dados);
+  },
+
+  excluirTurno(id) {
+    return this.delete(`/turnos/${encodeURIComponent(id)}`);
+  },
+
   listarFuncionarios() {
     return this.get("/funcionario");
   },

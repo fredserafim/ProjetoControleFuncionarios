@@ -3,12 +3,17 @@ package com.example.shiftsync.controllers;
 import com.example.shiftsync.DTO.*;
 import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.entities.Funcionario;
+import com.example.shiftsync.entities.AtribuicaoTurno;
+import com.example.shiftsync.entities.Turno;
+import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
 import com.example.shiftsync.repository.DepartamentoRepository;
 import com.example.shiftsync.repository.FuncionarioRepository;
-import com.example.shiftsync.services.FuncionarioService;
+import com.example.shiftsync.repository.TurnoRopository;
+import com.example.shiftsync.utils.RegrasJornada;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -28,7 +33,10 @@ public class FuncionarioController {
     private DepartamentoRepository departamentoRepository;
 
     @Autowired
-    private FuncionarioService funcionarioService;
+    private TurnoRopository turnoRepository;
+
+    @Autowired
+    private AtribuicaoTurnoRepository atribuicaoTurnoRepository;
 
     @GetMapping
     public List<FuncionarioResponse> consultFuncionario(){
@@ -52,6 +60,7 @@ public class FuncionarioController {
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<FuncionarioResponse> cadastrarFuncionario(@RequestBody FuncionarioRequest funcionarioRequest) {
         Funcionario funcionarioBanco = new Funcionario();
 
@@ -67,6 +76,10 @@ public class FuncionarioController {
 
         //salvando no banco
         funcionarioRepository.save(funcionarioBanco);
+        if (funcionarioRequest.getTurnoId() != null) {
+            Turno jornada = buscarJornadaAtiva(funcionarioRequest.getTurnoId());
+            atribuirJornada(funcionarioBanco, jornada, funcionarioRequest.getTurnoVigenciaInicio());
+        }
 
         FuncionarioResponse resposta = new FuncionarioResponse(funcionarioBanco);
         resposta.setMensagem("Cadastro com sucesso!");
@@ -74,11 +87,81 @@ public class FuncionarioController {
     }
 
     @PutMapping("/{id}")// atualiza tudo
+    @Transactional
     public ResponseEntity <FuncionarioResponse>
     atualizarFuncionarioId(@PathVariable Long id, @RequestBody FuncionarioRequest funcionarioRequest){
-        return funcionarioService.atualizarFuncionario(id, funcionarioRequest)
-                .map(funcionarioBanco -> ResponseEntity.ok(new FuncionarioResponse(funcionarioBanco)))
+        return funcionarioRepository.findByIdForUpdate(id).map(funcionarioBanco -> {
+            if (funcionarioRequest.getNome() != null) {
+                funcionarioBanco.setNome(funcionarioRequest.getNome());
+            }
+            if (funcionarioRequest.getCpf() != null) {
+                funcionarioBanco.setCpf(funcionarioRequest.getCpf());
+            }
+            funcionarioBanco.setTelefone(funcionarioRequest.getTelefone());
+            funcionarioBanco.setEndereco(funcionarioRequest.getEndereco());
+            funcionarioBanco.setFuncao(funcionarioRequest.getFuncao());
+            funcionarioBanco.setTurno(funcionarioRequest.getTurno());
+            if (funcionarioRequest.getTurnoId() != null
+                    && (funcionarioBanco.getJornada() == null
+                    || !funcionarioBanco.getJornada().getId().equals(funcionarioRequest.getTurnoId()))) {
+                Turno jornada = buscarJornadaAtiva(funcionarioRequest.getTurnoId());
+                atribuirJornada(funcionarioBanco, jornada, funcionarioRequest.getTurnoVigenciaInicio());
+            }
+            if (funcionarioRequest.getDepartamentoId() != null
+                    || funcionarioRequest.getDepartamento() != null) {
+                funcionarioBanco.setDepartamento(resolverDepartamento(funcionarioRequest));
+            }
+            funcionarioBanco.setDataAtualizacao(LocalDateTime.now());
+            Funcionario funcionarioAtualizado = funcionarioRepository.save(funcionarioBanco);
+            return ResponseEntity.ok(new FuncionarioResponse(funcionarioAtualizado));
+        })
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private Turno buscarJornadaAtiva(Long turnoId) {
+        Turno turno = turnoRepository.findByIdForUpdate(turnoId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Jornada não encontrada."));
+        if ("D".equals(turno.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Não é possível atribuir uma jornada inativa.");
+        }
+        if (!RegrasJornada.possuiConfiguracaoJornada(turno)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "O turno legado ainda não possui uma jornada configurada.");
+        }
+        return turno;
+    }
+
+    private void atribuirJornada(
+            Funcionario funcionario, Turno novaJornada, LocalDateTime vigenciaInicio) {
+        LocalDateTime vigencia = vigenciaInicio == null ? LocalDateTime.now() : vigenciaInicio;
+        var atribuicaoAtual = atribuicaoTurnoRepository
+                .findFirstByFuncionario_IdAndVigenciaFimIsNullOrderByVigenciaInicioDesc(
+                        funcionario.getId());
+
+        if (atribuicaoAtual.isPresent()) {
+            AtribuicaoTurno anterior = atribuicaoAtual.get();
+            if (!vigencia.isAfter(anterior.getVigenciaInicio())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "A nova vigência deve ser posterior ao início da jornada atual.");
+            }
+            RegrasJornada.validarTransicao(anterior.getTurno(), novaJornada, vigencia);
+            anterior.setVigenciaFim(vigencia);
+            atribuicaoTurnoRepository.save(anterior);
+        }
+
+        AtribuicaoTurno atribuicao = new AtribuicaoTurno();
+        atribuicao.setFuncionario(funcionario);
+        atribuicao.setTurno(novaJornada);
+        atribuicao.setVigenciaInicio(vigencia);
+        atribuicaoTurnoRepository.save(atribuicao);
+
+        funcionario.setJornada(novaJornada);
+        funcionario.setJornadaVigenciaInicio(vigencia);
+        funcionario.setTurno(novaJornada.getNome() == null
+                ? novaJornada.getPeriodo() : novaJornada.getNome());
     }
 
     private Departamento resolverDepartamento(FuncionarioRequest funcionarioRequest) {
@@ -91,7 +174,7 @@ public class FuncionarioController {
         String nomeDepartamento = funcionarioRequest.getDepartamento();
         if (nomeDepartamento == null || nomeDepartamento.isBlank()) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Selecione ou cadastre um departamento válido.");
+                    HttpStatus.BAD_REQUEST, "O departamento informado é inválido.");
         }
 
         return departamentoRepository.findByDepartamentoIgnoreCase(nomeDepartamento.trim())

@@ -48,7 +48,10 @@
       <section class="dashboard-panel" data-panel="turnos" aria-labelledby="titulo-turnos" hidden>
         <div class="barra-lista">
           <h2 id="titulo-turnos">Turnos disponíveis</h2>
-          <button type="button" data-refresh="turnos">Atualizar</button>
+          <div class="acoes-lista">
+            <button type="button" class="botao-secundario" data-refresh="turnos">Atualizar</button>
+            <button type="button" data-add-shift>Novo turno</button>
+          </div>
         </div>
         <p class="mensagem" data-status="turnos" role="status" aria-live="polite"></p>
         <div class="lista-usuarios" data-list="turnos"></div>
@@ -127,12 +130,108 @@
             <option value="">Selecione um departamento</option>
           </select>
         </label>
+        <label class="campo-funcionario" for="funcionario-turno-vigencia" data-shift-effective-field>
+          Início da vigência da jornada
+          <input id="funcionario-turno-vigencia" name="turnoVigenciaInicio" type="datetime-local">
+        </label>
       </div>
 
       <p class="mensagem" data-employee-form-status role="status" aria-live="polite"></p>
       <div class="acoes-formulario">
         <button type="button" class="botao-secundario" data-close-employee-dialog>Cancelar</button>
         <button type="submit" data-employee-submit>Salvar funcionário</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal-turno" data-shift-dialog aria-labelledby="titulo-modal-turno">
+    <form data-shift-form>
+      <div class="modal-cabecalho">
+        <h2 id="titulo-modal-turno" data-shift-form-title>Nova jornada</h2>
+        <button type="button" class="botao-fechar" data-close-shift-dialog aria-label="Fechar formulário">×</button>
+      </div>
+
+      <label class="campo-turno" for="turno-nome">
+        Nome da jornada
+        <input id="turno-nome" name="nome" type="text" maxlength="120" required>
+      </label>
+
+      <div class="grade-campos-funcionario">
+        <label class="campo-turno" for="turno-tipo-jornada">
+          Tipo de jornada
+          <select id="turno-tipo-jornada" name="tipoJornada" required>
+            <option value="DIURNA">Diurna</option>
+            <option value="NOTURNA">Noturna</option>
+            <option value="PERSONALIZADA">Personalizada</option>
+          </select>
+        </label>
+        <label class="campo-turno" for="turno-tipo-escala">
+          Tipo de escala
+          <select id="turno-tipo-escala" name="tipoEscala" required>
+            <option value="SEMANAL_FIXA">Semanal fixa</option>
+            <option value="12X36">12x36</option>
+            <option value="PERSONALIZADA">Personalizada por dias da semana</option>
+          </select>
+        </label>
+        <label class="campo-turno" for="turno-inicio">
+          Horário de início
+          <input id="turno-inicio" name="horarioInicio" type="time" required>
+        </label>
+        <label class="campo-turno" for="turno-fim">
+          Horário de término
+          <input id="turno-fim" name="horarioFim" type="time" required>
+        </label>
+      </div>
+
+      <fieldset class="campo-turno" data-weekdays-fieldset>
+        <legend>Dias de trabalho</legend>
+        <div class="selecao-dias-semana">
+          <label><input type="checkbox" name="diasSemana" value="MONDAY"> Segunda-feira</label>
+          <label><input type="checkbox" name="diasSemana" value="TUESDAY"> Terça-feira</label>
+          <label><input type="checkbox" name="diasSemana" value="WEDNESDAY"> Quarta-feira</label>
+          <label><input type="checkbox" name="diasSemana" value="THURSDAY"> Quinta-feira</label>
+          <label><input type="checkbox" name="diasSemana" value="FRIDAY"> Sexta-feira</label>
+          <label><input type="checkbox" name="diasSemana" value="SATURDAY"> Sábado</label>
+          <label><input type="checkbox" name="diasSemana" value="SUNDAY"> Domingo</label>
+        </div>
+      </fieldset>
+
+      <p class="mensagem" data-shift-schedule-help role="status" aria-live="polite"></p>
+      <div class="campo-turno">
+        <p>Intervalos não remunerados</p>
+        <div data-break-list></div>
+        <button type="button" class="botao-secundario" data-add-break>
+          Adicionar intervalo
+        </button>
+      </div>
+      <p class="descricao">Informe cada intervalo não remunerado; períodos sobrepostos ou fora da jornada serão recusados.</p>
+
+      <label class="campo-turno" for="turno-data-referencia" data-reference-date-field hidden>
+        Data de referência do ciclo 12x36
+        <input id="turno-data-referencia" name="dataReferencia" type="date">
+      </label>
+
+      <p class="mensagem" data-workload-preview aria-live="polite">Carga efetiva calculada: informe início e término.</p>
+      <div class="grade-campos-funcionario">
+        <label class="campo-turno" for="turno-carga-diaria-contratual">
+          Carga contratual diária (minutos, opcional)
+          <input id="turno-carga-diaria-contratual" name="cargaDiariaContratualMinutos" type="number" min="0" step="1">
+        </label>
+        <label class="campo-turno" for="turno-carga-semanal-contratual">
+          Carga contratual semanal (minutos, opcional)
+          <input id="turno-carga-semanal-contratual" name="cargaSemanalContratualMinutos" type="number" min="0" step="1">
+        </label>
+        <label class="campo-turno" for="turno-carga-mensal">
+          Carga mensal padrão (minutos, opcional)
+          <input id="turno-carga-mensal" name="cargaMensalPadraoMinutos" type="number" min="0" step="1">
+        </label>
+      </div>
+      <p class="descricao">As cargas contratuais são parâmetros separados da duração efetiva calculada a partir dos horários.</p>
+
+      <p class="mensagem" data-shift-form-status role="status" aria-live="polite"></p>
+      <div class="acoes-formulario">
+        <button type="button" class="botao-secundario" data-close-shift-dialog>Cancelar</button>
+        <button type="submit" data-shift-submit>Salvar jornada</button>
       </div>
     </form>
   </dialog>

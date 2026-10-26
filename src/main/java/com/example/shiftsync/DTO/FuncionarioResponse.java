@@ -41,6 +41,8 @@ public class FuncionarioResponse {
     private String turno;
     private Long departamentoId;
     private String departamento;
+    private Long turnoId;
+    private LocalDateTime turnoVigenciaInicio;
     private LocalDateTime dataCadastro;
     private LocalDateTime dataAtualizacao;
     private String status;
@@ -88,6 +90,13 @@ public class FuncionarioResponse {
         this.endereco = funcionario.getEndereco();
         this.funcao = funcionario.getFuncao();
         this.turno = funcionario.getTurno();
+        this.turnoId = funcionario.getJornada() == null
+                ? null : funcionario.getJornada().getId();
+        this.turnoVigenciaInicio = funcionario.getJornadaVigenciaInicio();
+        if (funcionario.getJornada() != null
+                && funcionario.getJornada().getNome() != null) {
+            this.turno = funcionario.getJornada().getNome();
+        }
         this.dataCadastro = funcionario.getDataCadastro();
         this.dataAtualizacao = funcionario.getDataAtualizacao();
         this.status = funcionario.getStatus();
@@ -130,6 +139,22 @@ public class FuncionarioResponse {
     }
     public void setDepartamento(String departamento) {
         this.departamento = departamento;
+    }
+
+    public Long getTurnoId() {
+        return turnoId;
+    }
+
+    public void setTurnoId(Long turnoId) {
+        this.turnoId = turnoId;
+    }
+
+    public LocalDateTime getTurnoVigenciaInicio() {
+        return turnoVigenciaInicio;
+    }
+
+    public void setTurnoVigenciaInicio(LocalDateTime turnoVigenciaInicio) {
+        this.turnoVigenciaInicio = turnoVigenciaInicio;
     }
 
     public LocalDateTime getDataCadastro() {
