@@ -5,6 +5,7 @@ import com.example.shiftsync.entities.AtribuicaoTurno;
 import com.example.shiftsync.entities.IntervaloJornada;
 import com.example.shiftsync.entities.Turno;
 import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
+import com.example.shiftsync.repository.FuncionarioRepository;
 import com.example.shiftsync.repository.TurnoRopository;
 import com.example.shiftsync.utils.RegrasJornada;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +17,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 @RestController
@@ -29,6 +32,9 @@ public class TurnoController {
 
     @Autowired
     private AtribuicaoTurnoRepository atribuicaoTurnoRepository;
+
+    @Autowired
+    private FuncionarioRepository funcionarioRepository;
 
     @GetMapping
     public List<TurnoConsultaResponse> consultTurno() {
@@ -69,15 +75,36 @@ public class TurnoController {
     @Transactional
     public ResponseEntity<TurnoResponse> atualizarTurno(
             @PathVariable Long id, @RequestBody TurnoRequest request) {
+        List<AtribuicaoTurno> atribuicoesPreliminares =
+                atribuicaoTurnoRepository.findByTurno_Id(id);
+        List<Long> funcionariosAfetados = atribuicoesPreliminares.stream()
+                .map(atribuicao -> atribuicao.getFuncionario().getId())
+                .distinct()
+                .sorted()
+                .toList();
+        Set<Long> funcionariosBloqueados = new HashSet<>(funcionariosAfetados);
+        if (!funcionariosAfetados.isEmpty()) {
+            funcionarioRepository.findAllByIdForUpdate(funcionariosAfetados);
+        }
+
         Turno turno = turnoRepository.findByIdForUpdate(id).orElse(null);
         if (turno == null) {
             return ResponseEntity.notFound().build();
+        }
+        List<AtribuicaoTurno> atribuicoes = atribuicaoTurnoRepository.findByTurno_Id(id);
+        boolean surgiuAtribuicaoConcorrente = atribuicoes.stream()
+                .map(atribuicao -> atribuicao.getFuncionario().getId())
+                .anyMatch(funcionarioId -> !funcionariosBloqueados.contains(funcionarioId));
+        if (surgiuAtribuicaoConcorrente) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "O turno recebeu novas atribuições durante a edição. Tente novamente.");
         }
 
         aplicarDados(turno, request);
         if (RegrasJornada.possuiConfiguracaoJornada(turno)) {
             RegrasJornada.validarECalcular(turno);
-            validarAtribuicoesAtivas(turno);
+            validarAtribuicoes(turno, atribuicoes);
         }
         if (request.getStatus() != null) {
             turno.setStatus(request.getStatus());
@@ -169,15 +196,15 @@ public class TurnoController {
         turno.setCargaMensalPadraoMinutos(request.getCargaMensalPadraoMinutos());
     }
 
-    private void validarAtribuicoesAtivas(Turno turnoAtualizado) {
-        for (AtribuicaoTurno atribuicao : atribuicaoTurnoRepository
-                .findByTurno_IdAndVigenciaFimIsNull(turnoAtualizado.getId())) {
+    private void validarAtribuicoes(
+            Turno turnoAtualizado, List<AtribuicaoTurno> atribuicoes) {
+        for (AtribuicaoTurno atribuicao : atribuicoes) {
             List<AtribuicaoTurno> historico = atribuicaoTurnoRepository
                     .findByFuncionario_IdOrderByVigenciaInicioAsc(
                             atribuicao.getFuncionario().getId());
             int indice = -1;
             for (int i = 0; i < historico.size(); i++) {
-                if (historico.get(i).getId().equals(atribuicao.getId())) {
+                if (Objects.equals(historico.get(i).getId(), atribuicao.getId())) {
                     indice = i;
                     break;
                 }
@@ -188,7 +215,35 @@ public class TurnoController {
                         turnoAtualizado,
                         atribuicao.getVigenciaInicio());
             }
+
+            for (AtribuicaoTurno outraAtribuicao : historico) {
+                if (Objects.equals(outraAtribuicao.getId(), atribuicao.getId())) {
+                    continue;
+                }
+                RegrasJornada.encontrarSobreposicao(
+                                turnoAtualizado,
+                                atribuicao.getVigenciaInicio(),
+                                atribuicao.getVigenciaFim(),
+                                outraAtribuicao.getTurno(),
+                                outraAtribuicao.getVigenciaInicio(),
+                                outraAtribuicao.getVigenciaFim())
+                        .ifPresent(conflito -> {
+                            String nomeConflitante = outraAtribuicao.getTurno().getNome() == null
+                                    ? outraAtribuicao.getTurno().getPeriodo()
+                                    : outraAtribuicao.getTurno().getNome();
+                            throw new ResponseStatusException(
+                                    HttpStatus.CONFLICT,
+                                    mensagemConflito(nomeConflitante, conflito));
+                        });
+            }
         }
+    }
+
+    private String mensagemConflito(
+            String nomeTurno, RegrasJornada.ConflitoSobreposicao conflito) {
+        return "Não foi possível atualizar o turno porque existe sobreposição de horários "
+                + "com a jornada \"" + (nomeTurno == null ? "sem nome" : nomeTurno)
+                + "\" entre " + conflito.inicio() + " e " + conflito.fim() + ".";
     }
 
     private Turno buscarJornadaConfigurada(Long id) {

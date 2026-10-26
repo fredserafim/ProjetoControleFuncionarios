@@ -107,6 +107,113 @@ class RegrasJornadaTest {
                 anterior, novo, LocalDateTime.of(2026, 10, 26, 12, 0)));
     }
 
+    @Test
+    void detectaSobreposicaoSemanalEPermiteFimExclusivo() {
+        Turno primeiro = turnoSemanal(LocalTime.of(8, 0), LocalTime.of(12, 0),
+                Set.of(DayOfWeek.MONDAY), List.of());
+        Turno sobreposto = turnoSemanal(LocalTime.of(11, 0), LocalTime.of(15, 0),
+                Set.of(DayOfWeek.MONDAY), List.of());
+        Turno consecutivo = turnoSemanal(LocalTime.of(12, 0), LocalTime.of(16, 0),
+                Set.of(DayOfWeek.MONDAY), List.of());
+        LocalDateTime inicio = LocalDateTime.of(2026, 10, 26, 0, 0);
+
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                primeiro, inicio, null, sobreposto, inicio, null).isPresent());
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                primeiro, inicio, null, consecutivo, inicio, null).isEmpty());
+    }
+
+    @Test
+    void detectaSobreposicaoEntreJornadaNoturnaEDiaSeguinte() {
+        Turno noturno = turnoSemanal(LocalTime.of(22, 0), LocalTime.of(6, 0),
+                Set.of(DayOfWeek.MONDAY), List.of());
+        Turno diurno = turnoSemanal(LocalTime.of(5, 30), LocalTime.of(8, 0),
+                Set.of(DayOfWeek.TUESDAY), List.of());
+        LocalDateTime inicio = LocalDateTime.of(2026, 10, 26, 0, 0);
+
+        var conflito = RegrasJornada.encontrarSobreposicao(
+                noturno, inicio, null, diurno, inicio, null).orElseThrow();
+
+        assertEquals(LocalDateTime.of(2026, 10, 27, 5, 30), conflito.inicio());
+        assertEquals(LocalDateTime.of(2026, 10, 27, 6, 0), conflito.fim());
+    }
+
+    @Test
+    void consideraDiasDaSemanaETransicoesDeVigencia() {
+        Turno segunda = turnoSemanal(LocalTime.of(8, 0), LocalTime.of(12, 0),
+                Set.of(DayOfWeek.MONDAY), List.of());
+        Turno terca = turnoSemanal(LocalTime.of(8, 0), LocalTime.of(12, 0),
+                Set.of(DayOfWeek.TUESDAY), List.of());
+        LocalDateTime inicio = LocalDateTime.of(2026, 10, 26, 0, 0);
+        LocalDateTime fim = LocalDateTime.of(2026, 11, 2, 0, 0);
+
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                segunda, inicio, null, terca, inicio, null).isEmpty());
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                segunda, inicio, fim, segunda, fim, null).isEmpty());
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                segunda, inicio, null, segunda, inicio.plusDays(1), null).isPresent());
+    }
+
+    @Test
+    void consideraSomenteTrechoDaOcorrenciaDentroDaVigenciaSobreposta() {
+        Turno primeiro = turnoSemanal(LocalTime.of(8, 0), LocalTime.of(12, 0),
+                Set.of(DayOfWeek.TUESDAY), List.of());
+        Turno segundo = turnoSemanal(LocalTime.of(11, 0), LocalTime.of(14, 0),
+                Set.of(DayOfWeek.TUESDAY), List.of());
+        LocalDateTime vigencia = LocalDateTime.of(2026, 10, 27, 9, 0);
+
+        var conflito = RegrasJornada.encontrarSobreposicao(
+                primeiro, vigencia, null, segundo, vigencia, null).orElseThrow();
+
+        assertEquals(LocalDateTime.of(2026, 10, 27, 11, 0), conflito.inicio());
+        assertEquals(LocalDateTime.of(2026, 10, 27, 12, 0), conflito.fim());
+    }
+
+    @Test
+    void consideraReferenciaDaEscalaDozePorTrintaESete() {
+        Turno escala12x36 = turno12x36(LocalDate.of(2026, 10, 26));
+        Turno terca = turnoSemanal(LocalTime.of(8, 0), LocalTime.of(12, 0),
+                Set.of(DayOfWeek.TUESDAY), List.of());
+        Turno segunda = turnoSemanal(LocalTime.of(8, 0), LocalTime.of(12, 0),
+                Set.of(DayOfWeek.MONDAY), List.of());
+        LocalDateTime inicio = LocalDateTime.of(2026, 10, 26, 0, 0);
+        LocalDateTime fim = LocalDateTime.of(2026, 10, 27, 0, 0);
+
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                escala12x36, inicio, fim, terca, inicio, fim).isEmpty());
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                escala12x36, inicio, fim, segunda, inicio, fim).isPresent(),
+                () -> "12x36: " + RegrasJornada.ocorrencias(
+                        escala12x36, inicio.minusDays(1), inicio.plusDays(2))
+                        + ", semanal: " + RegrasJornada.ocorrencias(
+                        segunda, inicio.minusDays(1), inicio.plusDays(2)));
+    }
+
+    @Test
+    void intervaloNaoRemuneradoNaoAutorizaSegundaAtribuicaoSilenciosamente() {
+        Turno comIntervalo = turnoSemanal(LocalTime.of(8, 0), LocalTime.of(18, 0),
+                Set.of(DayOfWeek.MONDAY),
+                List.of(new IntervaloJornada(LocalTime.of(12, 0), LocalTime.of(13, 30))));
+        Turno duranteIntervalo = turnoSemanal(LocalTime.of(12, 30), LocalTime.of(13, 0),
+                Set.of(DayOfWeek.MONDAY), List.of());
+        LocalDateTime inicio = LocalDateTime.of(2026, 10, 26, 0, 0);
+
+        assertTrue(RegrasJornada.encontrarSobreposicao(
+                comIntervalo, inicio, null, duranteIntervalo, inicio, null).isPresent());
+    }
+
+    private static Turno turno12x36(LocalDate referencia) {
+        Turno turno = new Turno();
+        turno.setNome("Plantão 12x36");
+        turno.setTipoJornada("DIURNA");
+        turno.setTipoEscala(RegrasJornada.ESCALA_12X36);
+        turno.setDataReferencia(referencia);
+        turno.setHorarioInicio(LocalTime.of(8, 0));
+        turno.setHorarioFim(LocalTime.of(20, 0));
+        return turno;
+    }
+
     private static Turno turnoSemanal(
             LocalTime inicio, LocalTime fim, Set<DayOfWeek> dias,
             List<IntervaloJornada> intervalos) {

@@ -2,6 +2,7 @@ package com.example.shiftsync.controllers;
 
 import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.entities.Funcionario;
+import com.example.shiftsync.entities.AtribuicaoTurno;
 import com.example.shiftsync.entities.Turno;
 import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
 import com.example.shiftsync.repository.DepartamentoRepository;
@@ -27,6 +28,7 @@ import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -167,6 +169,44 @@ class FuncionarioControllerTest {
 
         org.mockito.Mockito.verifyNoInteractions(atribuicaoTurnoRepository);
         org.mockito.Mockito.verifyNoInteractions(turnoRepository);
+    }
+
+    @Test
+    void retorna409SemPersistirQuandoNovaAtribuicaoConflitaComHistorico() throws Exception {
+        Funcionario funcionario = funcionario(7L, departamento(3L, "Financeiro"));
+        Turno turnoAnterior = turnoSemanal(11L, "Anterior", LocalTime.of(8, 0), LocalTime.of(10, 0));
+        Turno turnoEmConflito = turnoSemanal(12L, "Outra jornada", LocalTime.of(11, 0), LocalTime.of(13, 0));
+        Turno novoTurno = turnoSemanal(13L, "Novo turno", LocalTime.of(9, 0), LocalTime.of(12, 0));
+        LocalDateTime inicioHistorico = LocalDateTime.of(2026, 10, 19, 0, 0);
+        LocalDateTime vigenciaNova = LocalDateTime.of(2026, 10, 26, 0, 0);
+        AtribuicaoTurno atribuicaoAnterior = atribuicao(
+                1L, funcionario, turnoAnterior, inicioHistorico, null);
+        AtribuicaoTurno atribuicaoConflitante = atribuicao(
+                2L, funcionario, turnoEmConflito, vigenciaNova,
+                LocalDateTime.of(2026, 10, 28, 0, 0));
+
+        when(funcionarioRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(funcionario));
+        when(turnoRepository.findByIdForUpdate(13L)).thenReturn(Optional.of(novoTurno));
+        when(atribuicaoTurnoRepository
+                .findFirstByFuncionario_IdAndVigenciaFimIsNullOrderByVigenciaInicioDesc(7L))
+                .thenReturn(Optional.of(atribuicaoAnterior));
+        when(atribuicaoTurnoRepository.findByFuncionario_IdOrderByVigenciaInicioAsc(7L))
+                .thenReturn(List.of(atribuicaoAnterior, atribuicaoConflitante));
+
+        mockMvc.perform(put("/funcionario/7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "turno": "Novo turno",
+                                  "turnoId": 13,
+                                  "turnoVigenciaInicio": "2026-10-26T00:00:00"
+                                }
+                                """))
+                .andExpect(status().isConflict());
+
+        verify(funcionarioRepository, never()).save(any(Funcionario.class));
+        verify(atribuicaoTurnoRepository, never()).save(any(AtribuicaoTurno.class));
+        org.junit.jupiter.api.Assertions.assertNull(atribuicaoAnterior.getVigenciaFim());
     }
 
     @Test
@@ -328,5 +368,25 @@ class FuncionarioControllerTest {
         turno.setHorarioInicio(LocalTime.of(8, 0));
         turno.setHorarioFim(LocalTime.of(17, 0));
         return turno;
+    }
+
+    private static Turno turnoSemanal(Long id, String nome, LocalTime inicio, LocalTime fim) {
+        Turno turno = turno(id);
+        turno.setNome(nome);
+        turno.setHorarioInicio(inicio);
+        turno.setHorarioFim(fim);
+        return turno;
+    }
+
+    private static AtribuicaoTurno atribuicao(
+            Long id, Funcionario funcionario, Turno turno,
+            LocalDateTime inicio, LocalDateTime fim) {
+        AtribuicaoTurno atribuicao = new AtribuicaoTurno();
+        atribuicao.setId(id);
+        atribuicao.setFuncionario(funcionario);
+        atribuicao.setTurno(turno);
+        atribuicao.setVigenciaInicio(inicio);
+        atribuicao.setVigenciaFim(fim);
+        return atribuicao;
     }
 }

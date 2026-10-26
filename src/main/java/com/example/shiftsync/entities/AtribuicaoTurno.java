@@ -28,6 +28,10 @@ public class AtribuicaoTurno {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public Funcionario getFuncionario() {
         return funcionario;
     }

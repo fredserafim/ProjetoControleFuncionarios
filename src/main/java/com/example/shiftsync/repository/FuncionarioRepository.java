@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 @Repository
 public interface FuncionarioRepository extends JpaRepository<Funcionario,Long> {
@@ -20,4 +21,9 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario,Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select funcionario from Funcionario funcionario where funcionario.id = :id")
     Optional<Funcionario> findByIdForUpdate(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select funcionario from Funcionario funcionario "
+            + "where funcionario.id in :ids order by funcionario.id")
+    List<Funcionario> findAllByIdForUpdate(@Param("ids") Collection<Long> ids);
 }

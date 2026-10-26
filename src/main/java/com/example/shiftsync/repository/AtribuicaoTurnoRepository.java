@@ -15,5 +15,7 @@ public interface AtribuicaoTurnoRepository extends JpaRepository<AtribuicaoTurno
 
     List<AtribuicaoTurno> findByTurno_IdAndVigenciaFimIsNull(Long turnoId);
 
+    List<AtribuicaoTurno> findByTurno_Id(Long turnoId);
+
     List<AtribuicaoTurno> findByFuncionario_IdOrderByVigenciaInicioAsc(Long funcionarioId);
 }

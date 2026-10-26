@@ -10,10 +10,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 public final class RegrasJornada {
 
@@ -180,6 +180,129 @@ public final class RegrasJornada {
         }
     }
 
+    public static Optional<ConflitoSobreposicao> encontrarSobreposicao(
+            Turno primeiro,
+            LocalDateTime vigenciaInicioPrimeiro,
+            LocalDateTime vigenciaFimPrimeiro,
+            Turno segundo,
+            LocalDateTime vigenciaInicioSegundo,
+            LocalDateTime vigenciaFimSegundo) {
+        if (!possuiConfiguracaoJornada(primeiro)
+                || !possuiConfiguracaoJornada(segundo)) {
+            return Optional.empty();
+        }
+
+        LocalDateTime inicioComum = maximo(vigenciaInicioPrimeiro, vigenciaInicioSegundo);
+        LocalDateTime fimComum = minimo(vigenciaFimPrimeiro, vigenciaFimSegundo);
+        if (fimComum != null && !fimComum.isAfter(inicioComum)) {
+            return Optional.empty();
+        }
+
+        // Weekly and 12x36 schedules repeat together every 14 days.
+        LocalDateTime fimBusca = fimComum == null
+                || fimComum.isAfter(inicioComum.plusDays(15))
+                ? inicioComum.plusDays(15) : fimComum;
+        List<Ocorrencia> ocorrenciasPrimeiro =
+                ocorrencias(primeiro, inicioComum.minusDays(1), fimBusca);
+        List<Ocorrencia> ocorrenciasSegundo =
+                ocorrencias(segundo, inicioComum.minusDays(1), fimBusca);
+
+        ConflitoSobreposicao conflitoTrabalho = null;
+        ConflitoSobreposicao conflitoPausa = null;
+        for (Ocorrencia ocorrenciaPrimeiro : ocorrenciasPrimeiro) {
+            for (Ocorrencia ocorrenciaSegundo : ocorrenciasSegundo) {
+                Ocorrencia sobreposicaoOcorrencias = intersecao(
+                        ocorrenciaPrimeiro, ocorrenciaSegundo, inicioComum, fimBusca);
+                if (sobreposicaoOcorrencias == null) {
+                    continue;
+                }
+
+                for (Ocorrencia segmentoPrimeiro : segmentosTrabalho(
+                        primeiro, ocorrenciaPrimeiro)) {
+                    for (Ocorrencia segmentoSegundo : segmentosTrabalho(
+                            segundo, ocorrenciaSegundo)) {
+                        Ocorrencia sobreposicaoTrabalho = intersecao(
+                                segmentoPrimeiro, segmentoSegundo, inicioComum, fimBusca);
+                        if (sobreposicaoTrabalho != null) {
+                            conflitoTrabalho = conflitoMaisAntigo(
+                                    conflitoTrabalho, sobreposicaoTrabalho);
+                        }
+                    }
+                }
+
+                conflitoPausa = conflitoMaisAntigo(conflitoPausa, sobreposicaoOcorrencias);
+            }
+        }
+
+        // A pausa não é uma autorização para atribuir outra jornada simultânea.
+        return Optional.ofNullable(conflitoTrabalho != null ? conflitoTrabalho : conflitoPausa);
+    }
+
+    private static List<Ocorrencia> segmentosTrabalho(Turno turno, Ocorrencia ocorrencia) {
+        long duracao = Duration.between(ocorrencia.inicio(), ocorrencia.fim()).toMinutes();
+        long inicioTurno = minutoDoDia(turno.getHorarioInicio());
+        List<long[]> intervalos = (turno.getIntervalos() == null
+                ? List.<IntervaloJornada>of() : turno.getIntervalos()).stream()
+                .map(intervalo -> {
+                    long inicio = minutoDoDia(intervalo.getInicio()) - inicioTurno;
+                    if (inicio < 0) {
+                        inicio += 24 * 60L;
+                    }
+                    long fim = minutoDoDia(intervalo.getFim()) - inicioTurno;
+                    if (fim <= inicio) {
+                        fim += 24 * 60L;
+                    }
+                    return new long[]{inicio, fim};
+                })
+                .sorted(Comparator.comparingLong(intervalo -> intervalo[0]))
+                .toList();
+
+        List<Ocorrencia> segmentos = new ArrayList<>();
+        long cursor = 0;
+        for (long[] intervalo : intervalos) {
+            if (intervalo[0] > cursor) {
+                segmentos.add(new Ocorrencia(
+                        ocorrencia.inicio().plusMinutes(cursor),
+                        ocorrencia.inicio().plusMinutes(intervalo[0])));
+            }
+            cursor = Math.max(cursor, intervalo[1]);
+        }
+        if (cursor < duracao) {
+            segmentos.add(new Ocorrencia(
+                    ocorrencia.inicio().plusMinutes(cursor), ocorrencia.fim()));
+        }
+        return segmentos;
+    }
+
+    private static Ocorrencia intersecao(
+            Ocorrencia primeiro, Ocorrencia segundo,
+            LocalDateTime inicioLimite, LocalDateTime fimLimite) {
+        LocalDateTime inicio = maximo(
+                inicioLimite, maximo(primeiro.inicio(), segundo.inicio()));
+        LocalDateTime fim = minimo(
+                fimLimite, minimo(primeiro.fim(), segundo.fim()));
+        return fim == null || !fim.isAfter(inicio) ? null : new Ocorrencia(inicio, fim);
+    }
+
+    private static ConflitoSobreposicao conflitoMaisAntigo(
+            ConflitoSobreposicao atual, Ocorrencia candidato) {
+        if (atual == null || candidato.inicio().isBefore(atual.inicio())) {
+            return new ConflitoSobreposicao(candidato.inicio(), candidato.fim());
+        }
+        return atual;
+    }
+
+    private static LocalDateTime maximo(LocalDateTime primeiro, LocalDateTime segundo) {
+        return primeiro.isAfter(segundo) ? primeiro : segundo;
+    }
+
+    private static LocalDateTime minimo(LocalDateTime primeiro, LocalDateTime segundo) {
+        if (primeiro == null) {
+            return segundo;
+        }
+        return segundo == null || primeiro.isBefore(segundo) ? primeiro : segundo;
+    }
+
     private static long validarIntervalos(Turno turno, long duracaoTurno) {
         List<IntervaloJornada> intervalos = turno.getIntervalos() == null
                 ? List.of() : turno.getIntervalos();
@@ -269,5 +392,8 @@ public final class RegrasJornada {
     }
 
     public record Ocorrencia(LocalDateTime inicio, LocalDateTime fim) {
+    }
+
+    public record ConflitoSobreposicao(LocalDateTime inicio, LocalDateTime fim) {
     }
 }
