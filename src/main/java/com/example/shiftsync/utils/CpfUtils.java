@@ -17,8 +17,7 @@ public class CpfUtils {
             return false;
         }
 
-        // Remove caracteres não numéricos (pontos, traços, espaços)
-        String cpfLimpo = cpf.replaceAll("\\D", "");
+        String cpfLimpo = normalizar(cpf);
 
         // Verifica se tem 11 dígitos
         if (cpfLimpo.length() != 11) {
@@ -60,5 +59,9 @@ public class CpfUtils {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    public static String normalizar(String cpf) {
+        return cpf == null ? "" : cpf.replaceAll("\\D", "");
     }
 }

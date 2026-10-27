@@ -214,6 +214,29 @@ const api = {
     return this.get(`/funcionario/${encodeURIComponent(id)}/departamento`);
   },
 
+  buscarFuncionarioPonto(cpf) {
+    return this.get(`/ponto/funcionario?cpf=${encodeURIComponent(cpf)}`);
+  },
+
+  consultarPonto(cpf, data) {
+    const parametros = new URLSearchParams({ cpf, data });
+    return this.get(`/ponto?${parametros}`);
+  },
+
+  consultarPeriodoPonto(cpf, inicio, fim) {
+    const parametros = new URLSearchParams({ cpf, inicio, fim });
+    return this.get(`/ponto/periodo?${parametros}`);
+  },
+
+  registrarMarcacaoPonto(dados) {
+    return this.post("/ponto/marcacoes", dados);
+  },
+
+  consultarResumoMensalPonto(cpf, mes) {
+    const parametros = new URLSearchParams({ cpf, mes });
+    return this.get(`/ponto/resumo-mensal?${parametros}`);
+  },
+
   listarEmpresas() {
     return this.get("/empresas");
   },

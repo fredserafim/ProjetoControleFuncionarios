@@ -2,6 +2,7 @@ package com.example.shiftsync.config;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import jakarta.servlet.FilterChain;
@@ -55,7 +56,8 @@ public class JwtFilter  extends OncePerRequestFilter {
             JWTVerifier verifier = JWT.require(algorithm)
                     .withIssuer(emissor)
                     .build();
-            verifier.verify(headerToken.substring(7));
+            DecodedJWT token = verifier.verify(headerToken.substring(7));
+            request.setAttribute("authenticatedCpf", token.getSubject());
         } catch (JWTVerificationException exception) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");

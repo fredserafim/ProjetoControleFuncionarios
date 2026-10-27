@@ -32,6 +32,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -69,7 +70,10 @@ class HorasExtrasControllerTest {
 
     @BeforeEach
     void configurarMockMvc() {
-        mockMvc = MockMvcBuilders.standaloneSetup(funcionarioController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(funcionarioController)
+                .defaultRequest(get("/")
+                        .requestAttr("authenticatedCpf", "52998224725"))
+                .build();
     }
 
     @Test
@@ -387,6 +391,19 @@ class HorasExtrasControllerTest {
         verify(realizacaoTurnoRepository, never()).save(any(RealizacaoTurno.class));
     }
 
+    @Test
+    void impedeConsultaDeHorasExtrasDeOutroFuncionario() throws Exception {
+        when(funcionarioRepository.findById(FUNCIONARIO_ID))
+                .thenReturn(Optional.of(funcionario()));
+
+        mockMvc.perform(get("/funcionario/1/horas-extras")
+                        .param("mes", "2026-10")
+                        .requestAttr("authenticatedCpf", "11144477735"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(realizacaoTurnoRepository);
+    }
+
     private void configurarApuracao(
             AtribuicaoTurno atribuicao, List<RealizacaoTurno> realizacoes) {
         when(funcionarioRepository.findById(FUNCIONARIO_ID))
@@ -407,6 +424,7 @@ class HorasExtrasControllerTest {
         Funcionario funcionario = new Funcionario();
         funcionario.setId(FUNCIONARIO_ID);
         funcionario.setNome("Ana Silva");
+        funcionario.setCpf("52998224725");
         return funcionario;
     }
 

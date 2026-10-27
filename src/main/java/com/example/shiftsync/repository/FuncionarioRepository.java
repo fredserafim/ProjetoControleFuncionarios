@@ -22,6 +22,11 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario,Long> {
     @Query("select funcionario from Funcionario funcionario where funcionario.id = :id")
     Optional<Funcionario> findByIdForUpdate(@Param("id") Long id);
 
+    @Query(value = "select * from funcionario f where "
+            + "regexp_replace(coalesce(f.cpf, ''), '[^0-9]', '', 'g') = :cpf",
+            nativeQuery = true)
+    List<Funcionario> findAllByCpfNormalizado(@Param("cpf") String cpf);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select funcionario from Funcionario funcionario "
             + "where funcionario.id in :ids order by funcionario.id")

@@ -8,6 +8,7 @@
   <script src="../js/api.js" defer></script>
   <script src="../js/main.js" defer></script>
   <script src="../js/menu.js" defer></script>
+  <script src="../js/ponto.js" defer></script>
 </head>
 <body>
   <div class="dashboard-layout">
@@ -43,6 +44,77 @@
         </div>
         <p class="mensagem" data-status="inicio" role="status" aria-live="polite">Carregando...</p>
         <div class="lista-usuarios" data-list="inicio"></div>
+
+        <section class="ponto-card" aria-labelledby="titulo-registro-ponto">
+          <div class="barra-lista">
+            <h2 id="titulo-registro-ponto">Registro de Ponto</h2>
+          </div>
+          <form class="ponto-formulario" data-ponto-form>
+            <label for="ponto-cpf">
+              CPF do funcionário
+              <input id="ponto-cpf" name="cpf" type="text" inputmode="numeric"
+                     autocomplete="off" maxlength="14" required>
+            </label>
+            <label for="ponto-data">
+              Data da jornada
+              <input id="ponto-data" name="data" type="date" required>
+            </label>
+            <button type="submit" data-ponto-consultar>Consultar jornada</button>
+          </form>
+          <p class="mensagem" data-ponto-funcionario role="status" aria-live="polite"></p>
+          <p class="mensagem" data-ponto-status role="status" aria-live="polite">
+            Informe o CPF e a data para consultar as marcações.
+          </p>
+          <div class="ponto-horarios" aria-label="Horários registrados">
+            <label for="ponto-entrada">Horário de entrada
+              <input id="ponto-entrada" data-ponto-horario="entrada" type="time" readonly>
+            </label>
+            <label for="ponto-saida-intervalo">Saída para intervalo
+              <input id="ponto-saida-intervalo" data-ponto-horario="saidaIntervalo" type="time" readonly>
+            </label>
+            <label for="ponto-retorno-intervalo">Retorno do intervalo
+              <input id="ponto-retorno-intervalo" data-ponto-horario="retornoIntervalo" type="time" readonly>
+            </label>
+            <label for="ponto-saida-final">Saída do expediente
+              <input id="ponto-saida-final" data-ponto-horario="saidaFinal" type="time" readonly>
+            </label>
+          </div>
+          <div class="acoes-ponto" aria-label="Registrar marcação">
+            <button type="button" data-ponto-marcar="ENTRADA" disabled>Registrar entrada</button>
+            <button type="button" data-ponto-marcar="SAIDA_INTERVALO" disabled>Saída para intervalo</button>
+            <button type="button" data-ponto-marcar="RETORNO_INTERVALO" disabled>Retorno do intervalo</button>
+            <button type="button" data-ponto-marcar="SAIDA_FINAL" disabled>Saída final</button>
+          </div>
+          <p class="descricao">Os horários são fornecidos pelo servidor ao registrar cada etapa. Não é necessário informar antecipadamente o fim do expediente.</p>
+
+          <div class="ponto-resumo">
+            <h3>Registros por período</h3>
+            <form class="ponto-formulario" data-ponto-periodo-form>
+              <label for="ponto-periodo-inicio">Data inicial
+                <input id="ponto-periodo-inicio" name="inicio" type="date" required>
+              </label>
+              <label for="ponto-periodo-fim">Data final
+                <input id="ponto-periodo-fim" name="fim" type="date" required>
+              </label>
+              <button type="submit" class="botao-secundario">Consultar período</button>
+            </form>
+            <p class="descricao">O período pode conter até 32 dias corridos.</p>
+            <p class="mensagem" data-ponto-periodo-status role="status" aria-live="polite"></p>
+            <div class="lista-usuarios" data-ponto-periodo-lista></div>
+          </div>
+
+          <div class="ponto-resumo">
+            <h3>Resumo mensal</h3>
+            <form class="ponto-formulario" data-ponto-resumo-form>
+              <label for="ponto-mes">Mês de referência
+                <input id="ponto-mes" name="mes" type="month" required>
+              </label>
+              <button type="submit" class="botao-secundario">Consultar resumo</button>
+            </form>
+            <p class="mensagem" data-ponto-resumo-status role="status" aria-live="polite"></p>
+            <dl class="ponto-resumo-lista" data-ponto-resumo-lista></dl>
+          </div>
+        </section>
       </section>
 
       <section class="dashboard-panel" data-panel="turnos" aria-labelledby="titulo-turnos" hidden>

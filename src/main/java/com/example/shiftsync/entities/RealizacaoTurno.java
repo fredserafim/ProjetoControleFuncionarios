@@ -45,6 +45,10 @@ public class RealizacaoTurno {
 
     private LocalDateTime inicioReal;
 
+    private LocalDateTime inicioIntervaloReal;
+
+    private LocalDateTime fimIntervaloReal;
+
     private LocalDateTime fimReal;
 
     @ElementCollection
@@ -107,6 +111,22 @@ public class RealizacaoTurno {
 
     public void setFimReal(LocalDateTime fimReal) {
         this.fimReal = fimReal;
+    }
+
+    public LocalDateTime getInicioIntervaloReal() {
+        return inicioIntervaloReal;
+    }
+
+    public void setInicioIntervaloReal(LocalDateTime inicioIntervaloReal) {
+        this.inicioIntervaloReal = inicioIntervaloReal;
+    }
+
+    public LocalDateTime getFimIntervaloReal() {
+        return fimIntervaloReal;
+    }
+
+    public void setFimIntervaloReal(LocalDateTime fimIntervaloReal) {
+        this.fimIntervaloReal = fimIntervaloReal;
     }
 
     public List<IntervaloRealizacao> getIntervalosNaoTrabalhados() {

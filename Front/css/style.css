@@ -106,6 +106,87 @@ button:disabled {
   gap: 10px;
 }
 
+.ponto-card {
+  margin-top: 40px;
+  padding: 22px;
+  border: 1px solid #d9e1da;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ponto-formulario,
+.ponto-horarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  align-items: end;
+  gap: 14px;
+}
+
+.ponto-formulario label,
+.ponto-horarios label {
+  display: grid;
+  gap: 7px;
+  color: #355347;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ponto-formulario input,
+.ponto-horarios input {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #bac9bf;
+  border-radius: 5px;
+  background: #fff;
+  color: #203532;
+  font: inherit;
+}
+
+.ponto-horarios {
+  margin: 20px 0;
+}
+
+.ponto-horarios input[readonly] {
+  background: #f3f6f2;
+}
+
+.acoes-ponto {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.acoes-ponto button {
+  flex: 1 1 190px;
+}
+
+.ponto-resumo {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid #d9e1da;
+}
+
+.ponto-resumo h3 {
+  margin: 0 0 16px;
+}
+
+.ponto-resumo-lista {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(100px, 1fr);
+  gap: 8px 16px;
+  margin: 16px 0 0;
+}
+
+.ponto-resumo-lista dt {
+  color: #53635c;
+}
+
+.ponto-resumo-lista dd {
+  margin: 0;
+  font-weight: 700;
+}
+
 .usuario {
   padding: 18px 20px;
   border: 1px solid #d9e1da;

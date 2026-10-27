@@ -14,6 +14,7 @@ import com.example.shiftsync.repository.FuncionarioRepository;
 import com.example.shiftsync.repository.RealizacaoTurnoRepository;
 import com.example.shiftsync.repository.TurnoRopository;
 import com.example.shiftsync.utils.RegrasJornada;
+import com.example.shiftsync.utils.CpfUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -80,11 +82,14 @@ public class FuncionarioController {
     public ResponseEntity<List<TurnoPlanejadoResponse>> consultarTurnosPlanejados(
             @PathVariable Long id,
             @RequestParam LocalDateTime inicio,
-            @RequestParam LocalDateTime fim) {
+            @RequestParam LocalDateTime fim,
+            HttpServletRequest request) {
         validarPeriodoConsulta(inicio, fim);
-        if (funcionarioRepository.findById(id).isEmpty()) {
+        Funcionario funcionario = funcionarioRepository.findById(id).orElse(null);
+        if (funcionario == null) {
             return ResponseEntity.notFound().build();
         }
+        validarAcessoAoFuncionario(funcionario, request);
 
         Map<ChaveOcorrencia, RealizacaoTurno> realizacoes = new HashMap<>();
         realizacaoTurnoRepository.findByAtribuicao_Funcionario_Id(id).forEach(realizacao ->
@@ -116,11 +121,14 @@ public class FuncionarioController {
     @PostMapping("/{id}/realizacoes-turno")
     @Transactional
     public ResponseEntity<RealizacaoTurnoResponse> registrarRealizacaoTurno(
-            @PathVariable Long id, @RequestBody RealizacaoTurnoRequest request) {
+            @PathVariable Long id,
+            @RequestBody RealizacaoTurnoRequest request,
+            HttpServletRequest servletRequest) {
         Funcionario funcionario = funcionarioRepository.findByIdForUpdate(id).orElse(null);
         if (funcionario == null) {
             return ResponseEntity.notFound().build();
         }
+        validarAcessoAoFuncionario(funcionario, servletRequest);
         validarRequisicaoRealizacao(request);
 
         AtribuicaoTurno atribuicao = atribuicaoTurnoRepository
@@ -164,7 +172,9 @@ public class FuncionarioController {
     @GetMapping("/{id}/horas-extras")
     @Transactional(readOnly = true)
     public ResponseEntity<ApuracaoHorasExtrasResponse> consultarHorasExtras(
-            @PathVariable Long id, @RequestParam String mes) {
+            @PathVariable Long id,
+            @RequestParam String mes,
+            HttpServletRequest request) {
         YearMonth mesReferencia;
         try {
             mesReferencia = YearMonth.parse(mes);
@@ -177,6 +187,7 @@ public class FuncionarioController {
         if (funcionario == null) {
             return ResponseEntity.notFound().build();
         }
+        validarAcessoAoFuncionario(funcionario, request);
 
         LocalDateTime inicioMes = mesReferencia.atDay(1).atStartOfDay();
         LocalDateTime fimMes = mesReferencia.plusMonths(1).atDay(1).atStartOfDay();
@@ -425,6 +436,12 @@ public class FuncionarioController {
     }
 
     private void validarDadosReais(RealizacaoTurnoRequest request) {
+        if (request.getStatus() != StatusRealizacaoTurno.REALIZADO
+                && request.getStatus() != StatusRealizacaoTurno.NAO_REALIZADO) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Informe uma ocorrência realizada ou não realizada.");
+        }
         if (request.getStatus() == StatusRealizacaoTurno.NAO_REALIZADO) {
             if (request.getInicioReal() != null || request.getFimReal() != null
                     || !request.getIntervalosNaoTrabalhados().isEmpty()) {
@@ -473,6 +490,21 @@ public class FuncionarioController {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "O campo " + campo + " deve ter precisão de minutos.");
+        }
+    }
+
+    private void validarAcessoAoFuncionario(
+                Funcionario funcionario, HttpServletRequest request) {
+        Object cpfAutenticado = request.getAttribute("authenticatedCpf");
+        if (!(cpfAutenticado instanceof String)) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "A sessão autenticada não identificou o usuário.");
+        }
+        if (!CpfUtils.normalizar(funcionario.getCpf())
+                    .equals(CpfUtils.normalizar((String) cpfAutenticado))) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Só é permitido consultar ou alterar os próprios registros de jornada.");
         }
     }
 
