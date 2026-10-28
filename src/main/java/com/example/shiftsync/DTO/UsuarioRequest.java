@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Dados recebidos para criar ou atualizar uma conta de usuário. */
 public class UsuarioRequest {
 
     public UsuarioRequest(){}

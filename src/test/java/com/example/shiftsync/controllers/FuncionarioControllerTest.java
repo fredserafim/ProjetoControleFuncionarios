@@ -38,6 +38,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testa os endpoints de funcionário usando repositórios simulados.
+ *
+ * Abrange associações a departamentos e turnos, vigências históricas,
+ * duplicidade de atribuições e respostas de erro HTTP.
+ */
 @ExtendWith(MockitoExtension.class)
 class FuncionarioControllerTest {
 

@@ -1,5 +1,11 @@
 package com.example.shiftsync.utils;
 
+/**
+ * Funções estáticas para normalizar e verificar o dígito verificador de CPF.
+ *
+ * O construtor é privado porque esta classe não guarda estado: ela apenas reúne
+ * operações reutilizáveis.
+ */
 public class CpfUtils {
 
     private CpfUtils() {
@@ -30,7 +36,7 @@ public class CpfUtils {
         }
 
         try {
-            // Validação do 1º dígito verificador
+            // Multiplica os nove primeiros números por pesos decrescentes e compara o dígito calculado.
             int soma = 0;
             for (int i = 0; i < 9; i++) {
                 soma += Character.getNumericValue(cpfLimpo.charAt(i)) * (10 - i);
@@ -44,7 +50,7 @@ public class CpfUtils {
                 return false;
             }
 
-            // Validação do 2º dígito verificador
+            // Repete o cálculo incluindo o primeiro dígito verificador.
             soma = 0;
             for (int i = 0; i < 10; i++) {
                 soma += Character.getNumericValue(cpfLimpo.charAt(i)) * (11 - i);
@@ -61,6 +67,12 @@ public class CpfUtils {
         }
     }
 
+    /**
+     * Remove a máscara e quaisquer caracteres que não sejam dígitos.
+     *
+     * @param cpf CPF original; pode ser nulo.
+     * @return sequência numérica, ou texto vazio quando a entrada é nula.
+     */
     public static String normalizar(String cpf) {
         return cpf == null ? "" : cpf.replaceAll("\\D", "");
     }

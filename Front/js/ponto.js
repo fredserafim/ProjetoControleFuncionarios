@@ -1,3 +1,4 @@
+// Estado da tela de ponto: formulários, mensagens e controles das quatro marcações.
 const formularioPonto = document.querySelector("[data-ponto-form]");
 const formularioPeriodoPonto = document.querySelector("[data-ponto-periodo-form]");
 const formularioResumoPonto = document.querySelector("[data-ponto-resumo-form]");
@@ -13,6 +14,7 @@ let nomeFuncionarioPonto = "";
 let requisicaoPonto = 0;
 
 function dataLocalISO(data = new Date()) {
+  // Corrige o deslocamento do fuso antes de extrair YYYY-MM-DD em horário local.
   const deslocamento = data.getTimezoneOffset() * 60000;
   return new Date(data.getTime() - deslocamento).toISOString().slice(0, 10);
 }
@@ -38,6 +40,7 @@ function limparVisualizacaoPonto() {
 }
 
 function invalidarConsultaPonto() {
+  // Uma edição de CPF/data invalida a consulta anterior e bloqueia marcações antigas.
   requisicaoPonto++;
   funcionarioPonto = null;
   nomeFuncionarioPonto = "";
@@ -51,6 +54,7 @@ function invalidarConsultaPonto() {
 }
 
 function atualizarVisualizacaoPonto(registro) {
+  // Reflete as marcações retornadas pela API e habilita somente o próximo passo válido.
   const valores = {
     entrada: registro.entrada,
     saidaIntervalo: registro.saidaIntervalo,
@@ -87,6 +91,7 @@ function atualizarVisualizacaoPonto(registro) {
 }
 
 async function consultarPontoAtual(evento) {
+  // Primeiro identifica o titular e depois consulta a jornada da data escolhida.
   evento.preventDefault();
   const dados = new FormData(formularioPonto);
   const cpf = String(dados.get("cpf") || "").trim();
@@ -139,6 +144,7 @@ async function consultarPontoAtual(evento) {
 }
 
 async function registrarPonto(botao) {
+  // Envia apenas CPF, data e etapa; o horário oficial é fornecido pelo servidor.
   if (!funcionarioPonto) {
     statusRegistroPonto.classList.add("erro");
     statusRegistroPonto.textContent = "Consulte o funcionário e a jornada antes de registrar.";
@@ -189,6 +195,7 @@ function renderizarResumoPonto(resumo) {
 }
 
 function renderizarPeriodoPonto(registros) {
+  // Cria elementos de texto (sem inserir HTML recebido da API) para cada ocorrência.
   const lista = document.querySelector("[data-ponto-periodo-lista]");
   lista.replaceChildren();
   if (!Array.isArray(registros)) {

@@ -4,6 +4,13 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * Histórico acrescentado a cada marcação de ponto recebida.
+ *
+ * Cada linha guarda a realização afetada, o tipo de marcação, o instante de
+ * registro e o CPF extraído do usuário autenticado. Não substitui os horários
+ * atuais de RealizacaoTurno; permite consultar quem registrou cada etapa.
+ */
 @Entity
 @Table(name = "registro_ponto_auditoria")
 public class RegistroPontoAuditoria {

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/** Endpoints para cadastrar empresas, listá-las e consultar os usuários vinculados. */
 @RestController
 @RequestMapping("/empresas")
 public class EmpresaController {
@@ -20,6 +21,7 @@ public class EmpresaController {
     @Autowired
     private EmpresaRepository empresaRepository;
 
+    /** Copia os dados recebidos para a entidade e persiste uma empresa nova. */
     @PostMapping("/criar")
     public ResponseEntity<EmpresaResponse> casastrarEmpresa(@RequestBody EmpresaRequest empresaRequest){
 
@@ -41,12 +43,14 @@ public class EmpresaController {
         return ResponseEntity.ok(empresaResponse);
     }
 
+    /** Lista empresas convertendo cada entidade para a projeção de consulta. */
     @GetMapping
     public List<EmpresaConsultaResponse>listarTodos(){
 
         return empresaRepository.findAll().stream().map(EmpresaConsultaResponse::new).toList();
     }
 
+    /** Localiza a empresa por CNPJ e retorna usuários sem expor suas senhas. */
     @GetMapping("/cnpj/{cnpj}/usuarios")
     public ResponseEntity<List<UsuarioConsultaResponse>> buscarUsuariosPorCnpjEmpresa(@PathVariable String cnpj) {
 

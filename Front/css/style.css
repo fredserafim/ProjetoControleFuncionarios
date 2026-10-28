@@ -1,3 +1,4 @@
+/* Tokens visuais e estilos compartilhados pela tela de login e pelo painel. */
 :root {
   font-family: Arial, Helvetica, sans-serif;
   color: #203532;
@@ -106,8 +107,9 @@ button:disabled {
   gap: 10px;
 }
 
+/* Cartão de ponto agrupa formulários, marcações e resumos sem misturar com listas administrativas. */
 .ponto-card {
-  margin-top: 40px;
+  margin-top: 0;
   padding: 22px;
   border: 1px solid #d9e1da;
   border-radius: 8px;
@@ -207,6 +209,7 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+/* Estrutura do painel: navegação lateral fixa e conteúdo principal independente. */
 .dashboard-layout {
   min-height: 100vh;
 }
@@ -308,6 +311,7 @@ button:disabled {
   margin-bottom: 8px;
 }
 
+/* Cada seção é alternada pelo atributo hidden controlado por menu.js. */
 .dashboard-panel {
   padding-top: 12px;
 }
@@ -385,6 +389,7 @@ button:disabled {
 
 .modal-funcionario,
 .modal-turno,
+/* Estilos compartilhados dos diálogos de cadastro e edição. */
 .modal-departamento {
   width: min(100% - 32px, 680px);
   max-height: calc(100vh - 32px);
@@ -541,6 +546,7 @@ button:disabled {
   gap: 10px;
 }
 
+/* Em telas estreitas, formulários e ações passam a ocupar linhas mais compactas. */
 @media (max-width: 560px) {
   .grade-campos-funcionario {
     grid-template-columns: minmax(0, 1fr);
@@ -551,6 +557,7 @@ button:disabled {
   }
 }
 
+/* A página de login é centralizada e visualmente separada do painel autenticado. */
 .login-page {
   background-color: #edf2ee;
   background-image: linear-gradient(135deg, #edf4ef 0%, #f5f2e9 100%);
@@ -653,6 +660,7 @@ button:disabled {
   }
 }
 
+/* O menu deixa o posicionamento fixo em telas menores para liberar área de conteúdo. */
 @media (max-width: 760px) {
   .sidebar {
     position: sticky;

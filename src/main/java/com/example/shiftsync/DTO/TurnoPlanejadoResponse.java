@@ -5,6 +5,12 @@ import com.example.shiftsync.entities.Turno;
 
 import java.time.LocalDateTime;
 
+/**
+ * Ocorrência planejada de uma atribuição, possivelmente associada a uma confirmação.
+ *
+ * Permite ao cliente comparar a programação com o estado da realização sem
+ * expor objetos JPA completos.
+ */
 public class TurnoPlanejadoResponse {
 
     private Long atribuicaoTurnoId;

@@ -6,6 +6,12 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Valores aceitos para cadastrar ou atualizar uma configuração de turno.
+ *
+ * Os arrays de dias e intervalos descrevem a escala recorrente; campos de carga
+ * contratual são opcionais e não substituem a carga efetiva calculada.
+ */
 public class TurnoRequest {
 
     public TurnoRequest() {

@@ -2,6 +2,7 @@ package com.example.shiftsync.DTO;
 
 import com.example.shiftsync.entities.Empresa;
 
+/** Projeção simplificada dos dados da empresa para consultas da API. */
 public class EmpresaConsultaResponse {
 
     public EmpresaConsultaResponse() {

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/** Disponibiliza consultas de leitura para os cadastros de gerente existentes. */
 @RestController
 @RequestMapping("/gerentes")
 public class GerenteController {
@@ -20,12 +21,14 @@ public class GerenteController {
     private GerenteRepository gerenteRepository;
 
 
+    /** Retorna todos os gerentes usando o modelo da entidade como resposta. */
     @GetMapping
     public List<Gerente> consultGerentes(){
         return gerenteRepository.findAll();
     }
 
 
+    /** Busca um gerente por id e usa 404 quando o cadastro não existe. */
     @GetMapping("/{gerentesId}")
     public ResponseEntity<Gerente> consultIdGerentes(@PathVariable Long gerentesId) {
         return gerenteRepository.findById(gerentesId)

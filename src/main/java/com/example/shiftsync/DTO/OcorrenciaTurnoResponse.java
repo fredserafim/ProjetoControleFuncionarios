@@ -4,6 +4,7 @@ import com.example.shiftsync.utils.RegrasJornada;
 
 import java.time.LocalDateTime;
 
+/** Intervalo de uma jornada recorrente devolvido por consulta de ocorrências. */
 public class OcorrenciaTurnoResponse {
 
     private LocalDateTime inicio;

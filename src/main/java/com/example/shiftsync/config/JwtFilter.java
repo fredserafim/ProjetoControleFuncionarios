@@ -15,6 +15,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filtro executado uma vez por requisição para validar o token Bearer.
+ *
+ * Rotas públicas de login, documentação e preflight CORS passam sem JWT. Nas
+ * demais, o emissor e a assinatura são verificados; o CPF do assunto fica no
+ * atributo da requisição para os controllers de ponto.
+ */
 @Component
 public class JwtFilter  extends OncePerRequestFilter {
 
@@ -25,6 +32,12 @@ public class JwtFilter  extends OncePerRequestFilter {
     private String emissor;
 
 
+    /**
+     * Valida o cabeçalho Authorization e, se válido, continua a cadeia HTTP.
+     *
+     * Requisições sem token ou com token inválido recebem 401 em JSON e não
+     * alcançam o controller.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 

@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Resposta curta com o identificador e a mensagem da operação sobre um turno. */
 public class TurnoResponse {
 
     public TurnoResponse() {

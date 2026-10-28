@@ -3,6 +3,12 @@ package com.example.shiftsync.DTO;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Resumo diário das marcações persistidas e da jornada que estava planejada.
+ *
+ * Horários não marcados ficam nulos; minutos trabalhados só são fornecidos
+ * quando a jornada está concluída, evitando tratar um cálculo parcial como final.
+ */
 public class RegistroPontoResponse {
 
     private final Long funcionarioId;

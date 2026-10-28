@@ -4,6 +4,7 @@ import com.example.shiftsync.entities.Departamento;
 
 import java.time.LocalDateTime;
 
+/** Visão do departamento devolvida pela API, sem retornar a entidade JPA inteira. */
 public class DepartamentoResponse {
 
     public DepartamentoResponse() {}

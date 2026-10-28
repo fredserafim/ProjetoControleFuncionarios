@@ -35,9 +35,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Endpoints de cadastro de funcionários, atribuição histórica de turnos,
+ * confirmação de jornadas e consulta de horas extras.
+ *
+ * A camada converte entidades em DTOs para as respostas e delega o cálculo de
+ * ocorrências e transições à classe {@link RegrasJornada}.
+ */
 @RestController
 @RequestMapping("/funcionario")
-
 public class FuncionarioController {
 
 
@@ -56,6 +62,7 @@ public class FuncionarioController {
     @Autowired
     private RealizacaoTurnoRepository realizacaoTurnoRepository;
 
+    /** Lista funcionários e converte cada entidade para o formato público da API. */
     @GetMapping
     public List<FuncionarioResponse> consultFuncionario(){
         return funcionarioRepository.findAll().stream()
@@ -63,6 +70,7 @@ public class FuncionarioController {
                 .toList();
     }
 
+    /** Busca um funcionário pelo id; retorna 404 quando não existe. */
     @GetMapping("/{id}")
     public ResponseEntity<FuncionarioResponse> consultFuncionarioId(@PathVariable Long id) {
         return funcionarioRepository.findById(id)
@@ -70,6 +78,7 @@ public class FuncionarioController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /** Lista funcionários vinculados ao departamento informado. */
     @GetMapping("/{id}/departamento")
     public List<FuncionarioResponse> consultaFuncionarioPorDepartamento(@PathVariable Long id){
         return funcionarioRepository.findByDepartamento_Id(id).stream()
@@ -77,6 +86,10 @@ public class FuncionarioController {
                 .toList();
     }
 
+    /**
+     * Expande as atribuições históricas em ocorrências previstas dentro do período.
+     * Para cada ocorrência associa a realização já registrada, se existir.
+     */
     @GetMapping("/{id}/turnos-planejados")
     @Transactional(readOnly = true)
     public ResponseEntity<List<TurnoPlanejadoResponse>> consultarTurnosPlanejados(
@@ -118,6 +131,12 @@ public class FuncionarioController {
         return ResponseEntity.ok(resposta);
     }
 
+    /**
+     * Registra a confirmação administrativa de uma ocorrência planejada.
+     *
+     * Verifica o acesso ao funcionário, a propriedade da atribuição, a unicidade
+     * da ocorrência e a coerência dos horários efetivos antes de persistir.
+     */
     @PostMapping("/{id}/realizacoes-turno")
     @Transactional
     public ResponseEntity<RealizacaoTurnoResponse> registrarRealizacaoTurno(
@@ -169,6 +188,10 @@ public class FuncionarioController {
                         ? minutosEfetivos(salva) : null));
     }
 
+    /**
+     * Apura a diferença entre trabalho efetivo e carga mensal contratual.
+     * Também contabiliza pendências e ocorrências não realizadas conforme a regra atual.
+     */
     @GetMapping("/{id}/horas-extras")
     @Transactional(readOnly = true)
     public ResponseEntity<ApuracaoHorasExtrasResponse> consultarHorasExtras(
@@ -233,6 +256,10 @@ public class FuncionarioController {
         return ResponseEntity.ok(resposta);
     }
 
+    /**
+     * Cadastra o funcionário e, se informado, cria sua atribuição de turno com vigência.
+     * A primeira gravação permite usar o funcionário como bloqueio de concorrência.
+     */
     @PostMapping
     @Transactional
     public ResponseEntity<FuncionarioResponse> cadastrarFuncionario(@RequestBody FuncionarioRequest funcionarioRequest) {
@@ -250,7 +277,7 @@ public class FuncionarioController {
 
         Turno jornada = funcionarioRequest.getTurnoId() == null
                 ? null : buscarJornadaAtiva(funcionarioRequest.getTurnoId());
-        // The employee row is required as a serialization lock before recording its assignment.
+        // Salva primeiro para que exista uma linha de funcionário a bloquear ao criar a atribuição.
         funcionarioRepository.save(funcionarioBanco);
         if (funcionarioRequest.getTurnoId() != null) {
             atribuirJornada(funcionarioBanco, jornada, funcionarioRequest.getTurnoVigenciaInicio());
@@ -261,6 +288,7 @@ public class FuncionarioController {
         return ResponseEntity.ok(resposta);
     }
 
+    /** Atualiza dados cadastrais e cria uma nova vigência somente quando o turno muda. */
     @PutMapping("/{id}")// atualiza tudo
     @Transactional
     public ResponseEntity <FuncionarioResponse>
@@ -308,6 +336,10 @@ public class FuncionarioController {
         return turno;
     }
 
+    /**
+     * Fecha a atribuição anterior e cria a nova a partir da data de vigência.
+     * Antes de persistir, valida transição de descanso e sobreposição com outras jornadas.
+     */
     private void atribuirJornada(
             Funcionario funcionario, Turno novaJornada, LocalDateTime vigenciaInicio) {
         LocalDateTime vigencia = vigenciaInicio == null ? LocalDateTime.now() : vigenciaInicio;
@@ -346,6 +378,7 @@ public class FuncionarioController {
                 ? novaJornada.getPeriodo() : novaJornada.getNome());
     }
 
+    /** Impede atribuições simultâneas incompatíveis para o mesmo funcionário. */
     private void validarAusenciaDeSobreposicoes(
             Turno novaJornada,
             LocalDateTime vigenciaInicio,
@@ -383,6 +416,7 @@ public class FuncionarioController {
                 + "\" entre " + conflito.inicio() + " e " + conflito.fim() + ".";
     }
 
+    /** Rejeita períodos ausentes ou invertidos antes de expandir as ocorrências planejadas. */
     private void validarPeriodoConsulta(LocalDateTime inicio, LocalDateTime fim) {
         if (inicio == null || fim == null || !fim.isAfter(inicio)) {
             throw new ResponseStatusException(
@@ -402,6 +436,7 @@ public class FuncionarioController {
                 realizacao.getAtribuicao().getId(), realizacao.getInicioPlanejado());
     }
 
+    /** Valida presença e consistência básica dos campos da confirmação recebida. */
     private void validarRequisicaoRealizacao(RealizacaoTurnoRequest request) {
         if (request.getAtribuicaoTurnoId() == null
                 || request.getInicioPlanejado() == null
@@ -413,6 +448,7 @@ public class FuncionarioController {
         validarPrecisaoMinuto(request.getInicioPlanejado(), "início planejado");
     }
 
+    /** Confirma que o horário recebido corresponde a uma ocorrência da atribuição e da vigência. */
     private RegrasJornada.Ocorrencia buscarOcorrenciaPlanejada(
             AtribuicaoTurno atribuicao, LocalDateTime inicioPlanejado) {
         Turno turno = atribuicao.getTurno();
@@ -435,6 +471,7 @@ public class FuncionarioController {
         return ocorrencia;
     }
 
+    /** Confere ordem, duração e alinhamento por minuto dos horários efetivos. */
     private void validarDadosReais(RealizacaoTurnoRequest request) {
         if (request.getStatus() != StatusRealizacaoTurno.REALIZADO
                 && request.getStatus() != StatusRealizacaoTurno.NAO_REALIZADO) {
@@ -493,6 +530,7 @@ public class FuncionarioController {
         }
     }
 
+    /** Compara o CPF autenticado com o funcionário quando a chamada é feita por um titular. */
     private void validarAcessoAoFuncionario(
                 Funcionario funcionario, HttpServletRequest request) {
         Object cpfAutenticado = request.getAttribute("authenticatedCpf");
@@ -508,6 +546,7 @@ public class FuncionarioController {
         }
     }
 
+    /** Obtém a carga mensal padrão somente quando há uma atribuição vigente no primeiro dia. */
     private Integer cargaMensalVigente(Long funcionarioId, LocalDate primeiroDiaMes) {
         LocalDateTime inicioPrimeiroDia = primeiroDiaMes.atStartOfDay();
         LocalDateTime fimPrimeiroDia = inicioPrimeiroDia.plusDays(1);
@@ -526,6 +565,7 @@ public class FuncionarioController {
         return carga == null || carga < 0 ? null : carga;
     }
 
+    /** Conta ocorrências do mês que não possuem realização ou foram marcadas como não realizadas. */
     private ContagemTurnos contarTurnosPlanejados(Long funcionarioId, YearMonth mes) {
         LocalDateTime inicioMes = mes.atDay(1).atStartOfDay();
         LocalDateTime fimMes = mes.plusMonths(1).atDay(1).atStartOfDay();
@@ -567,6 +607,10 @@ public class FuncionarioController {
         return new ContagemTurnos(pendentes, naoRealizados);
     }
 
+    /**
+     * Separa o tempo realmente trabalhado das pausas e une faixas adjacentes.
+     * É usado para evitar somar intervalos sobrepostos na apuração mensal.
+     */
     private List<FaixaHorario> faixasTrabalhadas(RealizacaoTurno realizacao) {
         if (realizacao.getInicioReal() == null || realizacao.getFimReal() == null) {
             return List.of();
@@ -641,6 +685,10 @@ public class FuncionarioController {
     private record ContagemTurnos(int pendentes, int naoRealizados) {
     }
 
+    /**
+     * Resolve o departamento pelo id preferencial ou pelo nome legado.
+     * Ausência ou inexistência do departamento é comunicada como erro HTTP.
+     */
     private Departamento resolverDepartamento(FuncionarioRequest funcionarioRequest) {
         if (funcionarioRequest.getDepartamentoId() != null) {
             return departamentoRepository.findById(funcionarioRequest.getDepartamentoId())
@@ -660,6 +708,7 @@ public class FuncionarioController {
                         "Departamento não encontrado: " + nomeDepartamento));
     }
 
+    /** Atualiza apenas o status do funcionário. */
     @PatchMapping("/{id}/status")// atualiza pontualmente
     public ResponseEntity<FuncionarioResponse> AtualizarStatusFuncionario(@PathVariable Long id, @RequestBody AtualizaStatusFuncionarioRequest funcionarioRequest){
 

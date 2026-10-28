@@ -4,6 +4,7 @@ import com.example.shiftsync.entities.Usuario;
 
 import java.time.LocalDateTime;
 
+/** Visão de consulta de usuário que omite a senha armazenada. */
 public class UsuarioConsultaResponse {
 
     public UsuarioConsultaResponse(){}

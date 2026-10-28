@@ -40,6 +40,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Exercita a apuração mensal e as confirmações de realização de turno.
+ *
+ * Os cenários verificam extras acima/abaixo da carga, faltas e pendências,
+ * pausas, virada de dia/mês, duplicidade e autorização por funcionário.
+ */
 @ExtendWith(MockitoExtension.class)
 class HorasExtrasControllerTest {
 

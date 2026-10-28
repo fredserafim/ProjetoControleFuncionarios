@@ -32,6 +32,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Testa endpoints de turno isolando os repositórios com Mockito.
+ *
+ * Verifica a consulta de ocorrências e se uma atualização conflitante é rejeitada
+ * sem salvar dados inválidos.
+ */
 @ExtendWith(MockitoExtension.class)
 class TurnoControllerTest {
 

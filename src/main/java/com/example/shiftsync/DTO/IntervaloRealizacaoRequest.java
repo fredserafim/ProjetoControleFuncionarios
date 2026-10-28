@@ -2,6 +2,7 @@ package com.example.shiftsync.DTO;
 
 import java.time.LocalDateTime;
 
+/** Pausa efetiva informada ao confirmar uma realização de turno pelo fluxo legado. */
 public class IntervaloRealizacaoRequest {
 
     private LocalDateTime inicio;

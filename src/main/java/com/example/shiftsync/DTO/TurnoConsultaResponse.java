@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+/** Dados de uma jornada apresentados na consulta de turnos. */
 public class TurnoConsultaResponse {
 
     public TurnoConsultaResponse() {

@@ -19,6 +19,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Confirmação persistida de uma ocorrência planejada de turno.
+ *
+ * A chave única impede confirmar duas vezes a mesma ocorrência para uma atribuição.
+ * Além do início e fim previstos, a entidade armazena as marcações efetivas e as
+ * pausas; isso permite que a apuração use os minutos realmente trabalhados.
+ */
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(
         name = "uk_realizacao_atribuicao_inicio_planejado",
@@ -51,6 +58,11 @@ public class RealizacaoTurno {
 
     private LocalDateTime fimReal;
 
+    /**
+     * Pausas efetivas. A coleção é salva em tabela auxiliar e mantém a ordem
+     * registrada; os campos individuais de ponto também permitem acompanhar
+     * pausas parciais antes da conclusão da jornada.
+     */
     @ElementCollection
     @CollectionTable(
             name = "realizacao_turno_intervalo",

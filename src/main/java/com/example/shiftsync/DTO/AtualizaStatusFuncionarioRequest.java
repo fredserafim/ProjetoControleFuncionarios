@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Dados recebidos para alterar somente o status de um funcionário. */
 public class AtualizaStatusFuncionarioRequest {
 
     private String status;

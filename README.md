@@ -2,10 +2,10 @@
 
 ## Configuração local
 
-O back-end usa PostgreSQL. Configure estas variáveis de ambiente antes de iniciar a API:
+O back-end requer o JDK 25 (LTS) e usa PostgreSQL. Configure estas variáveis de ambiente antes de iniciar a API:
 
 - `DB_PASSWORD`: senha do usuário do banco.
-- `JWT_SECRET`: segredo aleatório com pelo menos 32 caracteres para assinar tokens.
+- `JWT_SECRET`: segredo usado para assinar e validar os tokens JWT.
 - `DB_URL` (opcional): URL JDBC; o padrão aponta para `localhost:5433/shiftsync`.
 - `DB_USERNAME` (opcional): usuário do banco; o padrão é `postgres`.
 - `JWT_TEMPO_MINUTOS` (opcional): duração do token; o padrão é 30 minutos.
@@ -15,7 +15,7 @@ No PowerShell, defina as variáveis e execute o servidor na mesma janela:
 
 ```powershell
 $env:DB_PASSWORD = "sua-senha-local"
-$env:JWT_SECRET = "um-segredo-aleatorio-com-mais-de-32-caracteres"
+$env:JWT_SECRET = "seu-segredo-local"
 .\mvnw.cmd spring-boot:run
 ```
 

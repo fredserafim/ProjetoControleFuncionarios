@@ -1,3 +1,4 @@
+// Liga o formulário de acesso ao endpoint /login e controla o estado da tela.
 const formularioLogin = document.querySelector("#login-form");
 const mensagemLogin = document.querySelector("#mensagem-login");
 const botaoEntrar = document.querySelector("#botao-entrar");
@@ -8,6 +9,7 @@ if (new URLSearchParams(window.location.search).has("sessionExpired")) {
 }
 
 formularioLogin.addEventListener("submit", async (evento) => {
+  // Evita o envio tradicional do navegador para poder aguardar a resposta REST.
   evento.preventDefault();
 
   mensagemLogin.classList.remove("erro");
@@ -23,6 +25,7 @@ formularioLogin.addEventListener("submit", async (evento) => {
   let loginAceito = false;
 
   try {
+    // O token retornado é guardado para que api.js o envie nas próximas chamadas.
     const resultado = await api.login(credenciais);
 
     if (!resultado?.token) {

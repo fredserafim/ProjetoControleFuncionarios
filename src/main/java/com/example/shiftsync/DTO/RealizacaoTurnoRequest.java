@@ -6,6 +6,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Confirmação recebida pelo endpoint legado de realização de turno.
+ *
+ * Para status realizado, o controller exige início/fim efetivos e valida as
+ * pausas; para não realizado, não aceita horários efetivos.
+ */
 public class RealizacaoTurnoRequest {
 
     private Long atribuicaoTurnoId;

@@ -49,6 +49,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testa o fluxo HTTP de ponto com repositórios simulados e um relógio controlado.
+ *
+ * Os cenários cobrem as quatro marcações, sequência, identidade por CPF,
+ * jornadas pendentes e apuração em limites de mês.
+ */
 @ExtendWith(MockitoExtension.class)
 class RegistroPontoControllerTest {
 

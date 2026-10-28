@@ -2,6 +2,7 @@ package com.example.shiftsync.DTO;
 
 import java.time.LocalDate;
 
+/** Resultado da consulta que informa se um turno prevê trabalho em uma data. */
 public class EstadoTurnoResponse {
 
     private LocalDate data;

@@ -41,6 +41,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Endpoints de consulta, marcação e apuração mensal do ponto.
+ *
+ * A identidade do funcionário é conferida com o CPF presente no JWT. As marcações
+ * usam o Clock injetado, respeitam a sequência temporal e são registradas também
+ * na tabela de auditoria.
+ */
 @RestController
 @RequestMapping("/ponto")
 public class RegistroPontoController {
@@ -51,6 +58,7 @@ public class RegistroPontoController {
     private final RegistroPontoAuditoriaRepository auditoriaRepository;
     private final Clock clock;
 
+    /** Recebe os repositórios e o relógio usados pelo fluxo de ponto. */
     public RegistroPontoController(
             FuncionarioRepository funcionarioRepository,
             AtribuicaoTurnoRepository atribuicaoTurnoRepository,
@@ -64,6 +72,7 @@ public class RegistroPontoController {
         this.clock = clock;
     }
 
+    /** Identifica o titular do token sem expor outros dados cadastrais. */
     @GetMapping("/funcionario")
     @Operation(summary = "Confirma o funcionário autenticado pelo CPF")
     public ResponseEntity<FuncionarioIdentificacao> consultarFuncionario(
@@ -73,6 +82,7 @@ public class RegistroPontoController {
                 new FuncionarioIdentificacao(funcionario.getId(), funcionario.getNome()));
     }
 
+    /** Consulta as marcações de uma jornada do funcionário autenticado. */
     @GetMapping
     @Transactional(readOnly = true)
     @Operation(summary = "Consulta o registro de ponto de uma jornada")
@@ -89,6 +99,10 @@ public class RegistroPontoController {
         return ResponseEntity.ok(criarResposta(funcionario, data, ocorrencia, realizacao));
     }
 
+    /**
+     * Monta o calendário de jornadas do período e associa cada realização existente.
+     * O limite de 32 dias evita consultas arbitrariamente grandes.
+     */
     @GetMapping("/periodo")
     @Transactional(readOnly = true)
     @Operation(summary = "Consulta os registros de ponto em um período")
@@ -135,6 +149,12 @@ public class RegistroPontoController {
                 .toList());
     }
 
+    /**
+     * Grava a próxima etapa cronológica (entrada, saída/retorno de intervalo ou saída final).
+     *
+     * A operação é transacional e bloqueia o funcionário para evitar duas marcações
+     * concorrentes; a mesma data e o tipo de marcação são registrados para auditoria.
+     */
     @PostMapping("/marcacoes")
     @Transactional
     @Operation(summary = "Registra a próxima marcação de ponto com horário do servidor")
@@ -183,6 +203,11 @@ public class RegistroPontoController {
                 funcionarioBloqueado, requestBody.getData(), ocorrencia, salva));
     }
 
+    /**
+     * Consolida horas previstas/realizadas e ocorrências do mês informado.
+     * A apuração mensal de extras depende de uma carga padrão vigente; sem ela,
+     * o campo de extras permanece indisponível em vez de assumir uma regra.
+     */
     @GetMapping("/resumo-mensal")
     @Transactional(readOnly = true)
     @Operation(summary = "Consulta a apuração mensal e as ocorrências de ponto")
@@ -313,6 +338,12 @@ public class RegistroPontoController {
                 intervalosInsuficientes));
     }
 
+    /**
+     * Confere o CPF informado contra o assunto do JWT e localiza um único funcionário ativo.
+     *
+     * Rejeita CPF inválido, sessão sem identidade, tentativa de consultar outra pessoa,
+     * ausência do cadastro e duplicidade de CPF, usando códigos HTTP distintos.
+     */
     private Funcionario buscarFuncionarioAutenticado(
             String cpf, HttpServletRequest request) {
         if (!CpfUtils.isValidCpf(cpf)) {
@@ -345,6 +376,7 @@ public class RegistroPontoController {
         return funcionario;
     }
 
+    /** Exige status ativo antes de permitir consultas ou novas marcações do titular. */
     private void validarFuncionarioAtivo(Funcionario funcionario) {
         if (!"A".equalsIgnoreCase(funcionario.getStatus())) {
             throw new ResponseStatusException(
@@ -352,6 +384,12 @@ public class RegistroPontoController {
         }
     }
 
+    /**
+     * Localiza a jornada cuja ocorrência começa na data indicada e está na vigência.
+     *
+     * A busca inclui dias vizinhos para permitir plantões noturnos; ao final exige
+     * exatamente uma ocorrência, retornando 404 ou 409 se houver zero ou várias.
+     */
     private OcorrenciaFuncionario buscarOcorrencia(Funcionario funcionario, LocalDate data) {
         LocalDateTime inicioBusca = data.minusDays(1).atStartOfDay();
         LocalDateTime fimBusca = data.plusDays(2).atStartOfDay();
@@ -379,6 +417,7 @@ public class RegistroPontoController {
         return ocorrencias.get(0);
     }
 
+    /** Considera início inclusivo e fim exclusivo ao verificar se uma jornada estava atribuída. */
     private boolean dentroDaVigencia(
             AtribuicaoTurno atribuicao, RegrasJornada.Ocorrencia ocorrencia) {
         return !ocorrencia.inicio().isBefore(atribuicao.getVigenciaInicio())
@@ -386,6 +425,7 @@ public class RegistroPontoController {
                 || ocorrencia.inicio().isBefore(atribuicao.getVigenciaFim()));
     }
 
+    /** Restringe a marcação à jornada atual, incluindo pequena tolerância após seu término. */
     private void validarJanelaDeRegistro(
             LocalDate data, RegrasJornada.Ocorrencia ocorrencia, LocalDateTime agora) {
         boolean dataAtual = data.equals(agora.toLocalDate());
@@ -400,6 +440,7 @@ public class RegistroPontoController {
         }
     }
 
+    /** Cria o registro inicial em andamento para uma ocorrência ainda sem marcações. */
     private RealizacaoTurno novaRealizacao(OcorrenciaFuncionario ocorrencia) {
         RealizacaoTurno realizacao = new RealizacaoTurno();
         realizacao.setAtribuicao(ocorrencia.atribuicao());
@@ -410,6 +451,7 @@ public class RegistroPontoController {
         return realizacao;
     }
 
+    /** Exige a próxima etapa esperada e impede horários fora de ordem ou finalizações repetidas. */
     private void validarProximaMarcacao(
             RealizacaoTurno realizacao, TipoMarcacaoPonto marcacao, LocalDateTime agora) {
         if (realizacao.getStatus() == StatusRealizacaoTurno.REALIZADO
@@ -442,6 +484,7 @@ public class RegistroPontoController {
         }
     }
 
+    /** Atualiza o campo correspondente à marcação e conclui a realização na saída final. */
     private void aplicarMarcacao(
             RealizacaoTurno realizacao, TipoMarcacaoPonto marcacao, LocalDateTime agora) {
         switch (marcacao) {
@@ -459,6 +502,10 @@ public class RegistroPontoController {
         }
     }
 
+    /**
+     * Converte a ocorrência e suas marcações em resposta para a interface.
+     * Calcula também status, horário previsto de pausa e total efetivo quando concluído.
+     */
     private RegistroPontoResponse criarResposta(
             Funcionario funcionario,
             LocalDate data,
@@ -519,6 +566,7 @@ public class RegistroPontoController {
                 minutosTrabalhados);
     }
 
+    /** Identifica desvios de horário e de duração de intervalo na realização concluída. */
     private boolean irregular(
             Turno turno, RegrasJornada.Ocorrencia planejada, RealizacaoTurno realizacao) {
         return realizacao.getInicioReal().isAfter(planejada.inicio())
@@ -527,6 +575,7 @@ public class RegistroPontoController {
                 || minutosIntervaloInsuficiente(turno, realizacao) > 0;
     }
 
+    /** Soma apenas os segmentos trabalhados, descontando pausas reais registradas. */
     private int minutosEfetivos(RealizacaoTurno realizacao) {
         return faixasTrabalhadas(realizacao).stream()
                 .mapToInt(faixa -> Math.toIntExact(
@@ -534,6 +583,7 @@ public class RegistroPontoController {
                 .sum();
     }
 
+    /** Separa o período real em faixas de trabalho, removendo intervalos não trabalhados. */
     private List<FaixaHorario> faixasTrabalhadas(RealizacaoTurno realizacao) {
         if (realizacao.getInicioReal() == null || realizacao.getFimReal() == null) {
             return List.of();
@@ -557,6 +607,7 @@ public class RegistroPontoController {
         return faixas;
     }
 
+    /** Conta o trecho confirmado antes da pausa quando a jornada ainda está em andamento. */
     private int minutosParciaisConfirmados(
             RealizacaoTurno realizacao, LocalDateTime inicio, LocalDateTime fim) {
         if (realizacao.getInicioReal() == null || realizacao.getInicioIntervaloReal() == null) {
@@ -569,6 +620,7 @@ public class RegistroPontoController {
                 .orElse(0);
     }
 
+    /** Intersecta uma faixa de horário com os limites do período, sem incluir trechos vazios. */
     private Optional<FaixaHorario> recortar(
             FaixaHorario faixa, LocalDateTime inicio, LocalDateTime fim) {
         LocalDateTime inicioRecortado = faixa.inicio().isAfter(inicio) ? faixa.inicio() : inicio;
@@ -578,6 +630,7 @@ public class RegistroPontoController {
                 : Optional.empty();
     }
 
+    /** Recorta as faixas previstas pela jornada nos limites do mês, descontando pausas previstas. */
     private int minutosPrevistosNoMes(
             Turno turno,
             RegrasJornada.Ocorrencia ocorrencia,
@@ -622,6 +675,8 @@ public class RegistroPontoController {
                 .sum();
     }
 
+    /** Calcula quantos minutos de pausa registrada excedem a duração prevista. */
+    /** Calcula a diferença positiva entre pausa efetiva e pausa prevista. */
     private int minutosIntervaloExcedente(Turno turno, RealizacaoTurno realizacao) {
         if (!possuiIntervaloRegistrado(realizacao)) {
             return 0;
@@ -640,6 +695,7 @@ public class RegistroPontoController {
         return Math.toIntExact(Math.max(0, real - previsto));
     }
 
+    /** Calcula quantos minutos faltam para completar a pausa prevista. */
     private int minutosIntervaloInsuficiente(Turno turno, RealizacaoTurno realizacao) {
         if (!possuiIntervaloRegistrado(realizacao)) {
             return 0;
@@ -681,6 +737,10 @@ public class RegistroPontoController {
         return horario.getHour() * 60L + horario.getMinute();
     }
 
+    /**
+     * Retorna a carga mensal da única atribuição vigente no primeiro dia do mês.
+     * Sem atribuição única ou sem carga configurada, não inventa um valor padrão.
+     */
     private Integer cargaMensalVigente(Long funcionarioId, LocalDate primeiroDiaMes) {
         LocalDateTime inicioDia = primeiroDiaMes.atStartOfDay();
         LocalDateTime fimDia = inicioDia.plusDays(1);

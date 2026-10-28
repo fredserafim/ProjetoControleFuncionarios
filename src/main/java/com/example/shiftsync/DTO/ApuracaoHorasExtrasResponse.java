@@ -1,5 +1,11 @@
 package com.example.shiftsync.DTO;
 
+/**
+ * Resposta da apuração mensal existente baseada nas realizações de turno.
+ *
+ * Os tempos são expostos em minutos; quando não há carga mensal configurada,
+ * os campos de apuração podem indicar pendência em vez de afirmar extras.
+ */
 public class ApuracaoHorasExtrasResponse {
 
     private Long funcionarioId;

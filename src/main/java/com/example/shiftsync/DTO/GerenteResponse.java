@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Dados do gerente expostos pela API após uma operação de cadastro. */
 public class GerenteResponse {
 
     public GerenteResponse() {

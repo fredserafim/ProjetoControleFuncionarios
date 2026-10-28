@@ -23,6 +23,12 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Teste de integração que verifica o mapeamento e a persistência real do ponto.
+ *
+ * Usa o contexto Spring e EntityManager para confirmar que as marcações e a
+ * auditoria são recuperadas do banco dentro da transação do teste.
+ */
 @SpringBootTest
 @Transactional
 class RegistroPontoPersistenceTest {

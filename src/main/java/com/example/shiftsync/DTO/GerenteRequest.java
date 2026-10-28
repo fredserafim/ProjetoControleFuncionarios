@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Dados recebidos para criar ou atualizar o cadastro de um gerente. */
 public class GerenteRequest {
 
     public GerenteRequest() {

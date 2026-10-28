@@ -15,6 +15,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Concentra cálculos e validações compartilhados pelos fluxos de turno e ponto.
+ *
+ * Os horários são tratados em minutos para suportar jornadas que atravessam
+ * a meia-noite. As escalas geram ocorrências em intervalos semiabertos
+ * (início incluído e fim excluído), evitando duplicidade nos limites.
+ */
 public final class RegrasJornada {
 
     public static final String ESCALA_SEMANAL_FIXA = "SEMANAL_FIXA";
@@ -28,6 +35,7 @@ public final class RegrasJornada {
     private RegrasJornada() {
     }
 
+    /** Informa se o turno contém algum dado que caracteriza uma escala configurada. */
     public static boolean possuiConfiguracaoJornada(Turno turno) {
         return turno.getHorarioInicio() != null
                 || turno.getHorarioFim() != null
@@ -35,6 +43,12 @@ public final class RegrasJornada {
                 || turno.getTipoJornada() != null;
     }
 
+    /**
+     * Valida a definição da jornada e preenche suas cargas derivadas.
+     *
+     * Confere tipo, escala, horários, intervalos, cargas contratuais e descanso
+     * semanal; se os dados forem inválidos, lança erro HTTP 400.
+     */
     public static void validarECalcular(Turno turno) {
         if (turno.getNome() == null || turno.getNome().isBlank()) {
             throw requisicaoInvalida("Informe o nome da jornada.");
@@ -84,6 +98,12 @@ public final class RegrasJornada {
         validarDescansoSemanal(turno);
     }
 
+    /**
+     * Calcula a duração bruta do turno, sem subtrair pausas.
+     *
+     * Quando o fim é igual ou anterior ao início, considera que a jornada termina
+     * no dia seguinte.
+     */
     public static long duracaoTurnoMinutos(Turno turno) {
         long inicio = minutoDoDia(turno.getHorarioInicio());
         long fim = minutoDoDia(turno.getHorarioFim());
@@ -93,6 +113,12 @@ public final class RegrasJornada {
         return fim - inicio;
     }
 
+    /**
+     * Gera as ocorrências da escala que cruzam o período consultado.
+     *
+     * Em escala semanal usa os dias da semana; em 12x36 usa a data de referência
+     * e ciclos de 48 horas. O limite final do período é exclusivo.
+     */
     public static List<Ocorrencia> ocorrencias(
             Turno turno, LocalDateTime inicioInclusivo, LocalDateTime fimExclusivo) {
         if (inicioInclusivo == null || fimExclusivo == null
@@ -126,12 +152,14 @@ public final class RegrasJornada {
         return ocorrencias;
     }
 
+    /** Verifica se uma ocorrência da escala começa na data indicada. */
     public static boolean trabalhaNaData(Turno turno, LocalDate data) {
         LocalDateTime inicioDia = data.atStartOfDay();
         return ocorrencias(turno, inicioDia, inicioDia.plusDays(1)).stream()
                 .anyMatch(ocorrencia -> ocorrencia.inicio().toLocalDate().equals(data));
     }
 
+    /** Encontra a última ocorrência completa anterior ao limite e dentro da vigência mínima. */
     public static Ocorrencia ultimaOcorrenciaAntes(
             Turno turno, LocalDateTime limiteExclusivo, LocalDateTime vigenciaMinima) {
         LocalDateTime inicioBusca = limiteExclusivo.minusDays(15);
@@ -142,6 +170,7 @@ public final class RegrasJornada {
                 .orElse(null);
     }
 
+    /** Encontra a primeira ocorrência cujo início não antecede o limite informado. */
     public static Ocorrencia primeiraOcorrenciaApos(
             Turno turno, LocalDateTime limiteInclusivo) {
         LocalDateTime fimBusca = limiteInclusivo.plusDays(15);
@@ -151,6 +180,12 @@ public final class RegrasJornada {
                 .orElse(null);
     }
 
+    /**
+     * Impede que a troca de jornada interrompa um plantão ou reduza o descanso abaixo de 11h.
+     *
+     * Se uma das jornadas não possuir configuração, a validação é ignorada, como
+     * ocorre em vínculos legados que ainda não têm horários completos.
+     */
     public static void validarTransicao(
             Turno jornadaAnterior, Turno novaJornada, LocalDateTime vigencia) {
         if (!possuiConfiguracaoJornada(jornadaAnterior)
@@ -180,6 +215,13 @@ public final class RegrasJornada {
         }
     }
 
+    /**
+     * Procura trabalho simultâneo entre duas jornadas nas vigências informadas.
+     *
+     * Compara também os períodos de pausa: uma pausa não permite cadastrar outra
+     * jornada sobre a mesma ocorrência. O resultado contém o conflito mais antigo,
+     * ou fica vazio quando não há sobreposição.
+     */
     public static Optional<ConflitoSobreposicao> encontrarSobreposicao(
             Turno primeiro,
             LocalDateTime vigenciaInicioPrimeiro,
@@ -198,7 +240,7 @@ public final class RegrasJornada {
             return Optional.empty();
         }
 
-        // Weekly and 12x36 schedules repeat together every 14 days.
+        // As escalas semanal e 12x36 se repetem juntas dentro de um ciclo de 14 dias.
         LocalDateTime fimBusca = fimComum == null
                 || fimComum.isAfter(inicioComum.plusDays(15))
                 ? inicioComum.plusDays(15) : fimComum;
@@ -238,6 +280,7 @@ public final class RegrasJornada {
         return Optional.ofNullable(conflitoTrabalho != null ? conflitoTrabalho : conflitoPausa);
     }
 
+    /** Divide uma ocorrência em segmentos efetivamente trabalhados, removendo as pausas previstas. */
     private static List<Ocorrencia> segmentosTrabalho(Turno turno, Ocorrencia ocorrencia) {
         long duracao = Duration.between(ocorrencia.inicio(), ocorrencia.fim()).toMinutes();
         long inicioTurno = minutoDoDia(turno.getHorarioInicio());
@@ -303,6 +346,7 @@ public final class RegrasJornada {
         return segundo == null || primeiro.isBefore(segundo) ? primeiro : segundo;
     }
 
+    /** Valida se pausas estão dentro do turno, têm duração e não se sobrepõem; retorna seus minutos. */
     private static long validarIntervalos(Turno turno, long duracaoTurno) {
         List<IntervaloJornada> intervalos = turno.getIntervalos() == null
                 ? List.of() : turno.getIntervalos();
@@ -338,6 +382,7 @@ public final class RegrasJornada {
         return total;
     }
 
+    /** Confere intervalos entre ocorrências de escalas não-12x36 para garantir 11h de descanso. */
     private static void validarDescansoSemanal(Turno turno) {
         if (ESCALA_12X36.equals(turno.getTipoEscala())) {
             return;
@@ -355,6 +400,7 @@ public final class RegrasJornada {
         }
     }
 
+    /** Estima a carga semanal pela frequência configurada (ou média do ciclo 12x36). */
     private static int calcularCargaSemanalPrevista(Turno turno, long cargaEfetiva) {
         long minutos = ESCALA_12X36.equals(turno.getTipoEscala())
                 ? (cargaEfetiva * 7 + 1) / 2
@@ -391,9 +437,11 @@ public final class RegrasJornada {
         return new ResponseStatusException(HttpStatus.BAD_REQUEST, mensagem);
     }
 
+    /** Intervalo semiaberto de uma ocorrência planejada de jornada. */
     public record Ocorrencia(LocalDateTime inicio, LocalDateTime fim) {
     }
 
+    /** Intervalo em que duas jornadas entram em conflito. */
     public record ConflitoSobreposicao(LocalDateTime inicio, LocalDateTime fim) {
     }
 }

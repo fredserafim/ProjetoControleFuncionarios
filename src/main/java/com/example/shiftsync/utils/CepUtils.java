@@ -6,6 +6,11 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
+/**
+ * Consulta o serviço externo ViaCEP e converte a resposta em endereço legível.
+ *
+ * A classe não mantém estado e instancia seu cliente HTTP durante a consulta.
+ */
 public class CepUtils {
 
     private CepUtils() {
@@ -18,6 +23,14 @@ public class CepUtils {
      *
      * @param cepInformado String contendo o CEP (com ou sem máscara)
      * @return String formatada (ex: "Rua X, Complemento - Bairro, Cidade/UF") ou null se não encontrar.
+     */
+    /**
+     * Valida o formato do CEP, consulta o ViaCEP e concatena os campos disponíveis.
+     *
+     * @param cepInformado CEP com ou sem pontuação.
+     * @return endereço formatado, ou {@code null} quando o serviço não encontra o CEP.
+     * @throws IllegalArgumentException se o CEP estiver vazio ou não tiver oito dígitos.
+     * @throws RuntimeException se a chamada externa ou a leitura do JSON falhar.
      */
     public static String buscarEndereco(String cepInformado) {
         if (cepInformado == null || cepInformado.isBlank()) {

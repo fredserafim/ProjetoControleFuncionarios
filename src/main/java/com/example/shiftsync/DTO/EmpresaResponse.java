@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Resposta resumida de operações de cadastro e atualização de empresa. */
 public class EmpresaResponse {
 
     public EmpresaResponse() {

@@ -6,6 +6,13 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Conta de acesso da aplicação.
+ *
+ * O CPF é usado como login e como assunto do JWT, enquanto a senha fica armazenada
+ * no campo {@code senha} (com codificação aplicada no fluxo de cadastro/login).
+ * A entidade também mantém empresa e associações com turnos.
+ */
 @Entity
 public class Usuario {
 
@@ -34,6 +41,7 @@ public class Usuario {
 
     private String status;
 
+    /** Senha codificada pelo controller antes da persistência. */
     private String senha;
 
 

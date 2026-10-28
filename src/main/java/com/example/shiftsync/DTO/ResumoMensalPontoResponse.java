@@ -1,5 +1,12 @@
 package com.example.shiftsync.DTO;
 
+/**
+ * Indicadores mensais do ponto e das jornadas previstas.
+ *
+ * As quantidades e durações são separadas para distinguir atraso, falta,
+ * pendência e excedente. Horas extras apuradas ficam nulas quando falta uma
+ * carga mensal padrão vigente.
+ */
 public class ResumoMensalPontoResponse {
 
     private final Long funcionarioId;

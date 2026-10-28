@@ -2,6 +2,7 @@ package com.example.shiftsync.DTO;
 
 import java.time.LocalTime;
 
+/** Horários enviados para configurar uma pausa prevista em um turno. */
 public class IntervaloJornadaRequest {
 
     private LocalTime inicio;

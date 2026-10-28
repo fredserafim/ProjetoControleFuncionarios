@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Credenciais recebidas pelo endpoint de autenticação. */
 public class LoginRequest {
 
     public LoginRequest(){}

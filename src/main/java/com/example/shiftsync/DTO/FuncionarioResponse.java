@@ -5,6 +5,7 @@ import com.example.shiftsync.entities.Departamento;
 
 import java.time.LocalDateTime;
 
+/** Representação de funcionário enviada ao cliente, com relações convertidas em campos simples. */
 public class FuncionarioResponse {
 
     public FuncionarioResponse() {

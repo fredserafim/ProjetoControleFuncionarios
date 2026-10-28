@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Campos de entrada usados pela API para cadastrar ou atualizar uma empresa. */
 public class EmpresaRequest {
 
     public EmpresaRequest() {

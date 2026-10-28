@@ -4,6 +4,13 @@ import jakarta.persistence.*;
 
 import java.util.List;
 
+/**
+ * Cadastro persistido de uma empresa e de seus dados de identificação.
+ *
+ * Os campos marcados como únicos são protegidos também pelo banco. A coleção de
+ * usuários é o lado inverso da relação: {@code mappedBy} aponta para o atributo
+ * {@code empresa} mantido em {@link Usuario}.
+ */
 @Entity
 public class Empresa{
     public Empresa() {
@@ -19,12 +26,14 @@ public class Empresa{
 
     private String nomeFantasia;
 
+    /** Número de CNPJ, com unicidade garantida pelo banco de dados. */
     @Column(unique = true)
     private String cnpj;
 
     @Column(unique = true)
     private String incricaoEstadual;
 
+    /** Usuários vinculados à empresa; o lado dono da associação fica em Usuario. */
     @OneToMany(mappedBy = "empresa")
     private List<Usuario> usuarios;
 

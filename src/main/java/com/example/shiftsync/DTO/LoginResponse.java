@@ -1,5 +1,6 @@
 package com.example.shiftsync.DTO;
 
+/** Resultado do login; contém a mensagem e o token JWT emitido pela API. */
 public class LoginResponse {
 
     public LoginResponse(){}

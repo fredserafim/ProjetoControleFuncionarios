@@ -17,6 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Testes unitários da geração e validação de escalas.
+ *
+ * Os cenários cobrem cargas efetivas, meia-noite, escala 12x36, descanso,
+ * intervalos, transições de vigência e conflitos entre jornadas.
+ */
 class RegrasJornadaTest {
 
     @Test

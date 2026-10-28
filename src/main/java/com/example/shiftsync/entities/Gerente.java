@@ -7,6 +7,12 @@ import jakarta.persistence.Id;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidade persistida com os dados cadastrais do gerente.
+ *
+ * A classe funciona como modelo de banco de dados; não contém regras próprias
+ * de autorização nem uma associação formal com {@link Usuario}.
+ */
 @Entity
 public class Gerente {
 

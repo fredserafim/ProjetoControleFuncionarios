@@ -1,3 +1,4 @@
+// Controla os formulários administrativos, listas do painel e dados de referência.
 const nomesTurnos = new Map();
 const nomesDepartamentos = new Map();
 const diasSemanaNomes = new Map([
@@ -11,6 +12,7 @@ const diasSemanaNomes = new Map([
 ]);
 
 function nomeExibicaoTurno(valor) {
+  // Resolve tanto ids quanto nomes legados para mostrar um rótulo amigável.
   const chave = String(valor);
   return [...nomesTurnos.entries()].find(
     ([nome]) => nome.toLowerCase() === chave.toLowerCase()
@@ -18,6 +20,7 @@ function nomeExibicaoTurno(valor) {
 }
 
 function formatarCargaHoraria(minutos) {
+  // Converte minutos num formato curto usado nas listas e na apuração.
   const horas = Math.floor(minutos / 60);
   const minutosRestantes = minutos % 60;
   return minutosRestantes
@@ -26,6 +29,7 @@ function formatarCargaHoraria(minutos) {
 }
 
 function formatarDataHoraLocal(valor = new Date()) {
+  // Adapta a data ao fuso local para preencher corretamente campos datetime-local.
   const data = valor instanceof Date
     ? valor
     : new Date(valor);
@@ -34,6 +38,7 @@ function formatarDataHoraLocal(valor = new Date()) {
 }
 
 function atualizarCampoVigenciaTurno(preencherData = true) {
+  // Exige a data de início apenas quando o formulário seleciona um turno configurado.
   const selectTurno = document.querySelector("#funcionario-turno");
   const campoVigencia = document.querySelector("#funcionario-turno-vigencia");
   const jornadaSelecionada = /^\d+$/.test(selectTurno.value);
@@ -45,23 +50,11 @@ function atualizarCampoVigenciaTurno(preencherData = true) {
 }
 
 function jornadaConfigurada(turno) {
+  // O frontend distingue turnos novos com horários de vínculos legados sem escala detalhada.
   return Boolean(turno.tipoEscala && turno.horarioInicio && turno.horarioFim);
 }
 
 const secoesDashboard = {
-  inicio: {
-    carregar: () => api.listarUsuarios(),
-    nomeItem: (item) => item.nome || `Usuário ${item.id}`,
-    campos: [
-      ["cpf", "CPF"],
-      ["dataNascimento", "Data de nascimento"],
-      ["dataCadastro", "Cadastrado em"],
-      ["dataAtualizacao", "Atualizado em"],
-      ["empresa_id", "ID da empresa"],
-      ["razaoSocialEmpresa", "Empresa"],
-      ["status", "Status"]
-    ]
-  },
   turnos: {
     carregar: () => api.listarTurnos(),
     nomeItem: (item) => item.nome || item.periodo || `Jornada ${item.id}`,
@@ -135,6 +128,7 @@ const botaoSalvarDepartamento = document.querySelector("[data-department-submit]
 let departamentoEmEdicao = null;
 
 function preencherOpcoes(select, opcoes) {
+  // Reconstrói as opções mantendo o placeholder inicial do campo.
   const opcaoInicial = select.options[0];
   select.replaceChildren(opcaoInicial);
   opcoes.forEach(({ value, label }) => {
@@ -146,6 +140,7 @@ function preencherOpcoes(select, opcoes) {
 }
 
 async function carregarOpcoesFuncionario(funcionario = null) {
+  // Carrega turnos/departamentos em paralelo e conserva opções inativas já vinculadas.
   const [turnos, departamentos] = await Promise.all([
     api.listarTurnos(),
     api.listarDepartamentos()
@@ -199,6 +194,7 @@ async function carregarOpcoesFuncionario(funcionario = null) {
 }
 
 function mostrarRegistros(secao, registros) {
+  // Monta a lista de forma segura com textContent e adiciona ações específicas por seção.
   const configuracao = secoesDashboard[secao];
   const lista = document.querySelector(`[data-list="${secao}"]`);
   const mensagem = document.querySelector(`[data-status="${secao}"]`);
@@ -379,6 +375,7 @@ function mostrarRegistros(secao, registros) {
 }
 
 function abrirFormularioTurno(turno = null) {
+  // Preenche o diálogo tanto para cadastro quanto para edição.
   turnoEmEdicao = turno;
   formularioTurno.reset();
   statusFormularioTurno.textContent = "";
@@ -416,6 +413,7 @@ function abrirFormularioTurno(turno = null) {
 }
 
 function criarCampoIntervaloTurno(intervalo = {}) {
+  // Produz um bloco de pausa reutilizável, inclusive para inclusão dinâmica no formulário.
   const linha = document.createElement("div");
   linha.className = "intervalo-jornada";
   linha.dataset.breakRow = "";
@@ -445,12 +443,14 @@ function criarCampoIntervaloTurno(intervalo = {}) {
 }
 
 function preencherIntervalosTurno(intervalos) {
+  // Mantém pelo menos uma linha de intervalo disponível para edição.
   listaIntervalosTurno.replaceChildren(
     ...(intervalos.length ? intervalos : [{}]).map(criarCampoIntervaloTurno)
   );
 }
 
 function obterIntervalosTurno() {
+  // Lê todos os blocos dinâmicos de pausa antes de montar o DTO do turno.
   return [...listaIntervalosTurno.querySelectorAll("[data-break-row]")].map((linha) => ({
     inicio: linha.querySelector('[name="intervaloInicio"]').value,
     fim: linha.querySelector('[name="intervaloFim"]').value
@@ -458,6 +458,7 @@ function obterIntervalosTurno() {
 }
 
 function atualizarCamposEscala(preencherPadroes = false) {
+  // Ajusta a visibilidade e obrigatoriedade dos campos conforme o tipo de escala.
   const escala = document.querySelector("#turno-tipo-escala").value;
   const ciclo12x36 = escala === "12X36";
   document.querySelector("[data-weekdays-fieldset]").hidden = ciclo12x36;
@@ -483,6 +484,7 @@ function atualizarCamposEscala(preencherPadroes = false) {
 }
 
 function atualizarPreviaCargaJornada() {
+  // Atualiza a prévia visual da carga a partir de horários, dias e intervalos informados.
   const inicio = document.querySelector("#turno-inicio").value;
   const fim = document.querySelector("#turno-fim").value;
   const intervalos = obterIntervalosTurno();
@@ -552,6 +554,7 @@ function atualizarPreviaCargaJornada() {
 }
 
 function cargaContratualOpcional(valor) {
+  // Converte o campo opcional para inteiro não negativo; NaN sinaliza entrada inválida.
   if (!valor) {
     return null;
   }
@@ -560,6 +563,7 @@ function cargaContratualOpcional(valor) {
 }
 
 async function salvarTurno(evento) {
+  // Valida os campos da tela e escolhe POST ou PUT conforme o modo do diálogo.
   evento.preventDefault();
   if (!formularioTurno.reportValidity() || botaoSalvarTurno.disabled) {
     return;
@@ -638,6 +642,7 @@ async function salvarTurno(evento) {
 }
 
 async function alterarStatusTurno(id, status, botao) {
+  // Atualiza o status do turno e recarrega a seção após a confirmação da API.
   const reativando = status !== "D";
   const turno = turnosPorId.get(String(id));
   const nome = turno?.periodo || `Turno ${id}`;
@@ -691,6 +696,7 @@ function abrirFormularioDepartamento(departamento = null) {
 }
 
 async function salvarDepartamento(evento) {
+  // Envia os campos do diálogo e apresenta o resultado sem recarregar a página inteira.
   evento.preventDefault();
   if (!formularioDepartamento.reportValidity() || botaoSalvarDepartamento.disabled) {
     return;
@@ -797,6 +803,7 @@ async function alterarStatusDepartamento(id, status, botao) {
 }
 
 async function carregarFuncionariosDepartamento(departamento) {
+  // Atualiza a lista associada ao departamento selecionado.
   departamentoSelecionado = departamento;
   const requisicaoAtual = ++carregamentoFuncionariosDepartamento;
   const mensagem = document.querySelector("[data-department-employees-status]");
@@ -875,6 +882,7 @@ async function carregarFuncionariosDepartamento(departamento) {
 }
 
 async function abrirFormularioFuncionario(funcionario = null) {
+  // Carrega as opções da API antes de preencher os dados da pessoa no diálogo.
   funcionarioEmEdicao = funcionario;
   formularioFuncionario.reset();
   statusFormularioFuncionario.textContent = "";
@@ -927,6 +935,7 @@ async function abrirFormularioFuncionario(funcionario = null) {
 }
 
 async function salvarFuncionario(evento) {
+  // Converte os valores do formulário em DTO, envia o cadastro/edição e atualiza a lista.
   evento.preventDefault();
 
   if (!formularioFuncionario.reportValidity()) {
@@ -995,6 +1004,7 @@ async function salvarFuncionario(evento) {
 }
 
 async function carregarSecao(secao, atualizar = false) {
+  // Busca os dados quando a seção abre ou quando o usuário solicita atualização explícita.
   if (!secoesDashboard[secao]) {
     return false;
   }
@@ -1038,6 +1048,7 @@ async function carregarSecao(secao, atualizar = false) {
   }
 }
 
+// Os eventos são delegados às listas para que funcionem também após uma atualização.
 document.querySelectorAll("[data-refresh]").forEach((botao) => {
   botao.addEventListener("click", () => carregarSecao(botao.dataset.refresh, true));
 });
@@ -1097,6 +1108,7 @@ document.querySelector("[data-add-department]").addEventListener("click", () => 
   abrirFormularioDepartamento();
 });
 
+// Cliques nos cartões acionam edição/alteração de status sem criar listeners por item.
 document.querySelector('[data-list="turnos"]').addEventListener("click", async (evento) => {
   const botaoEditar = evento.target.closest("[data-edit-shift]");
   if (botaoEditar) {
@@ -1220,10 +1232,12 @@ document.querySelectorAll("[data-close-department-dialog]").forEach((botao) => {
   botao.addEventListener("click", () => dialogoDepartamento.close());
 });
 
+// A saída remove a credencial local antes de voltar à tela de login.
 document.querySelector("[data-logout]").addEventListener("click", () => {
   localStorage.removeItem("token");
 });
 
+// menu.js emite este evento quando a navegação muda; cada painel é carregado sob demanda.
 window.addEventListener("dashboard:viewchange", (evento) => {
   carregarSecao(evento.detail.view);
 });

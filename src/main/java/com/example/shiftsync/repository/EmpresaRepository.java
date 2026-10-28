@@ -7,8 +7,10 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/** Operações de persistência de empresas, complementadas por consulta de CNPJ. */
 @Repository
 public interface EmpresaRepository extends JpaRepository<Empresa,Long> {
 
+    /** Busca uma empresa pelo CNPJ e representa ausência com Optional vazio. */
     Optional<Empresa> getEmpresaByCnpj(String Long);
 }

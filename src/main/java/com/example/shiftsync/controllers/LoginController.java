@@ -24,6 +24,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 
+/**
+ * Autentica o usuário pelo CPF e emite um token JWT assinado.
+ *
+ * Senhas BCrypt são verificadas pelo PasswordEncoder. Para compatibilidade com
+ * registros antigos em texto simples, o código compara em tempo constante e,
+ * quando correto, migra a senha para BCrypt no próximo login.
+ */
 @RestController
 @RequestMapping("/login")
 public class LoginController {
@@ -43,6 +50,10 @@ public class LoginController {
     @Value("${spring.tempo}")
     private Long tempo;
 
+    /**
+     * Valida credenciais e status da conta, retornando 401 quando não são aceitos.
+     * Em caso de sucesso, o JWT recebe emissor, CPF como assunto e expiração configurada.
+     */
     @PostMapping
     public ResponseEntity<LoginResponse>logar(@RequestBody LoginRequest loginRequest){
         if (loginRequest.getLogin() == null || loginRequest.getSenha() == null) {
@@ -73,6 +84,10 @@ public class LoginController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
+    /**
+     * Compara a senha informada com hash BCrypt ou com o formato legado.
+     * Se a senha legada for válida, grava imediatamente sua versão BCrypt.
+     */
     private boolean senhaCorreta(Usuario usuario, String senhaInformada) {
         if (senhaInformada == null || usuario.getSenha() == null) {
             return false;
@@ -95,6 +110,7 @@ public class LoginController {
         return senhaLegadaValida;
     }
 
+    /** Calcula o instante de expiração do token usando o prazo configurado em minutos. */
     private Instant gerarDataExpiracao() {
 
         LocalDateTime dataAtual = LocalDateTime.now();

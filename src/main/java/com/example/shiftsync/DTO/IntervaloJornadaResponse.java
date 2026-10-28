@@ -4,6 +4,7 @@ import com.example.shiftsync.entities.IntervaloJornada;
 
 import java.time.LocalTime;
 
+/** Pausa prevista devolvida ao consultar uma configuração de turno. */
 public class IntervaloJornadaResponse {
 
     private LocalTime inicio;

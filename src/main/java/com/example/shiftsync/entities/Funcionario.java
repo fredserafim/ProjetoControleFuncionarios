@@ -9,6 +9,14 @@ import jakarta.persistence.ManyToOne;
 
 import java.time.LocalDateTime;
 
+/**
+ * Cadastro do funcionário usado pelas consultas administrativas e pelo controle
+ * de jornada. O departamento e a jornada direta são relações com outras entidades;
+ * a vigência histórica das mudanças de jornada é mantida em {@link AtribuicaoTurno}.
+ *
+ * A entidade é mapeada pelo JPA, e o campo id usa geração de identidade do banco.
+ * Métodos get/set são acessores simples usados pelo Hibernate, DTOs e controllers.
+ */
 @Entity
 public class Funcionario {
 
@@ -29,10 +37,12 @@ public class Funcionario {
 
         private String turno;
 
+        /** Departamento atual do funcionário, armazenado por uma chave estrangeira. */
         @ManyToOne
         @JoinColumn(name = "departamento_id")
         private Departamento departamento;
 
+        /** Jornada de referência mantida para compatibilidade com o cadastro atual. */
         @ManyToOne
         @JoinColumn(name = "turno_jornada_id")
         private Turno jornada;

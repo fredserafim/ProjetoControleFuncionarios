@@ -2,6 +2,12 @@ package com.example.shiftsync.DTO;
 
 import java.time.LocalDate;
 
+/**
+ * Dados de identificação da jornada e da próxima marcação do ponto.
+ *
+ * O cliente não envia horário: a API usa o relógio do servidor, reduzindo a
+ * possibilidade de alterar retroativamente o instante informado.
+ */
 public class RegistroPontoRequest {
 
     private String cpf;

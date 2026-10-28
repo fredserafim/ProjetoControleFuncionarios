@@ -27,9 +27,16 @@ import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
+/**
+ * Define as origens locais autorizadas a acessar a API pelo navegador.
+ *
+ * O filtro registra a configuração para todas as rotas, métodos e cabeçalhos
+ * explicitamente listados; isso não substitui autenticação JWT.
+ */
 @Configuration
 public class CorsConfig {
 
+    /** Constrói e registra o filtro CORS com as origens e métodos permitidos. */
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();

@@ -2,6 +2,13 @@ package com.example.shiftsync.DTO;
 
 import java.time.LocalDateTime;
 
+/**
+ * Dados que o frontend pode enviar para cadastrar ou editar um funcionário.
+ *
+ * O turnoId e turnoVigenciaInicio são usados para criar a atribuição histórica;
+ * os campos de departamento aceitam tanto o identificador quanto o formato
+ * legado pelo nome, conforme o controller.
+ */
 public class FuncionarioRequest {
 
     public FuncionarioRequest() {
@@ -33,7 +40,7 @@ public class FuncionarioRequest {
 
     private Long departamentoId;
 
-    // Retained to accept requests from clients that still submit the department name.
+    // Mantém a compatibilidade com clientes que ainda enviam o nome do departamento.
     private String departamento;
 
     private String turno;

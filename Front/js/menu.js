@@ -1,3 +1,4 @@
+// O menu usa o fragmento da URL como identificador da seção ativa.
 const secoesMenu = new Set(["inicio", "turnos", "departamentos", "funcionarios"]);
 const tituloPagina = document.querySelector("#titulo-pagina");
 const descricaoPagina = document.querySelector("#descricao-pagina");
@@ -6,6 +7,7 @@ function ativarSecao() {
   const hash = window.location.hash.slice(1);
   const secaoAtiva = secoesMenu.has(hash) ? hash : "inicio";
 
+  // Oculta painéis inativos, atualiza acessibilidade/título e avisa main.js.
   document.querySelectorAll("[data-panel]").forEach((painel) => {
     painel.hidden = painel.dataset.panel !== secaoAtiva;
   });

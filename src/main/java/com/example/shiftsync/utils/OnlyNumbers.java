@@ -1,5 +1,6 @@
 package com.example.shiftsync.utils;
 
+/** Agrupa uma conversão simples usada para remover máscaras de campos numéricos. */
 public class OnlyNumbers {
 
     private OnlyNumbers() {

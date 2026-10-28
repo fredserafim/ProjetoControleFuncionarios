@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/** Expõe operações de consulta, cadastro, edição e desativação lógica de departamentos. */
 @RestController
 @RequestMapping("/departamentos")
 public class DepartamentoController {
@@ -17,6 +18,7 @@ public class DepartamentoController {
     @Autowired
     private DepartamentoRepository departamentoRepository;
 
+    /** Lista departamentos como DTOs para não serializar relações JPA diretamente. */
     @GetMapping
     public List<DepartamentoResponse> consultDepartamento(){
         return departamentoRepository.findAll().stream()
@@ -24,6 +26,7 @@ public class DepartamentoController {
                 .toList();
     }
 
+    /** Busca um departamento pelo id e devolve 404 quando não existe. */
     @GetMapping("/{id}")
     public ResponseEntity<DepartamentoResponse> consultDepartamentoId(@PathVariable Long id) {
         return departamentoRepository.findById(id)
@@ -31,6 +34,7 @@ public class DepartamentoController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /** Cria um departamento; quando o status não vem no pedido, inicia como ativo. */
     @PostMapping
     public ResponseEntity<DepartamentoResponse> cadastrarDepartamento(
             @RequestBody DepartamentoRequest departamentoRequest) {
@@ -46,6 +50,7 @@ public class DepartamentoController {
         return ResponseEntity.ok(resposta);
     }
 
+    /** Atualiza os dados do departamento e a data de alteração, se ele existir. */
     @PutMapping("/{id}")
     public ResponseEntity<DepartamentoResponse> atualizarDepartamento(
             @PathVariable Long id, @RequestBody DepartamentoRequest departamentoRequest) {
@@ -62,6 +67,7 @@ public class DepartamentoController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /** Altera somente o status solicitado, sem substituir os demais campos. */
     @PatchMapping("/{id}/status")
     public ResponseEntity<DepartamentoResponse> atualizarStatusDepartamento(
             @PathVariable Long id, @RequestBody AtualizaStatusDepartamentoRequest departamentoRequest) {
@@ -75,6 +81,7 @@ public class DepartamentoController {
         return ResponseEntity.notFound().build();
     }
 
+    /** Realiza exclusão lógica, salvando o status inativo em vez de apagar a linha. */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> atualizarStatusDepartamento(@PathVariable Long id) {
         Departamento departamentoBanco = departamentoRepository.findById(id).orElse(null);
@@ -86,4 +93,3 @@ public class DepartamentoController {
         return ResponseEntity.notFound().build();
     }
 }
-

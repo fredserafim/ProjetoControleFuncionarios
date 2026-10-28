@@ -5,6 +5,7 @@ import com.example.shiftsync.entities.StatusRealizacaoTurno;
 
 import java.time.LocalDateTime;
 
+/** Resposta da confirmação de uma ocorrência planejada e de seus minutos efetivos. */
 public class RealizacaoTurnoResponse {
 
     private Long id;

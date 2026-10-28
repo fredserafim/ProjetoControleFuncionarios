@@ -11,6 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Modelo reutilizável de jornada: horários, dias de trabalho, escala e cargas.
+ *
+ * {@code @ElementCollection} guarda dias e pausas em tabelas auxiliares sem
+ * transformá-los em entidades independentes. Horários usam tipos temporais
+ * adequados: {@link LocalTime} para hora do dia e {@link LocalDate} como
+ * referência de ciclo, como na escala 12x36.
+ */
 @Entity
 public class Turno {
 
@@ -44,6 +52,7 @@ public class Turno {
 
     private LocalDate dataReferencia;
 
+    /** Carga efetiva calculada a partir da duração e pausas do turno. */
     private Integer cargaEfetivaMinutos;
 
     private Integer cargaSemanalPrevistaMinutos;
@@ -54,12 +63,14 @@ public class Turno {
 
     private Integer cargaMensalPadraoMinutos;
 
+    /** Dias da semana em que a escala semanal fixa prevê trabalho. */
     @ElementCollection
     @CollectionTable(name = "turno_dia_semana", joinColumns = @JoinColumn(name = "turno_id"))
     @Column(name = "dia_semana", nullable = false)
     @Enumerated(EnumType.STRING)
     private Set<DayOfWeek> diasSemana = new HashSet<>();
 
+    /** Pausas previstas, ordenadas para serem calculadas dentro do plantão. */
     @ElementCollection
     @CollectionTable(name = "turno_intervalo", joinColumns = @JoinColumn(name = "turno_id"))
     @OrderColumn(name = "ordem")
@@ -73,10 +84,12 @@ public class Turno {
         this.usuarios = usuario;
     }
 
+    /** Usuários associados no relacionamento muitos-para-muitos já existente. */
     @ManyToMany(mappedBy = "turno" )
 
     private Set<Usuario> usuarios =  new HashSet<>();
 
+    /** Relação legada de turno para turno, mantida para compatibilidade do modelo. */
     @ManyToOne
     @JoinColumn(name = "turno_id")
     private Turno turno;

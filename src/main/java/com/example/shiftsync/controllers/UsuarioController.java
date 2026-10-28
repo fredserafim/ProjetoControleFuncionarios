@@ -7,18 +7,26 @@ import com.example.shiftsync.DTO.UsuarioResponse;
 import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.EmpresaRepository;
 import com.example.shiftsync.repository.UsuarioRepository;
+import com.example.shiftsync.utils.CpfUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Endpoints de consulta e manutenção de contas de usuário.
+ *
+ * Respostas de consulta usam DTOs que omitem senha; ao criar ou alterar senha,
+ * o valor é codificado com BCrypt antes de ser persistido.
+ */
 @RestController
 @RequestMapping("/usuarios")
-
-
 public class UsuarioController {
 
     @Autowired
@@ -31,23 +39,64 @@ public class UsuarioController {
     private PasswordEncoder passwordEncoder;
 
 
+    /**
+     * Mantém o formato de lista da rota existente, mas limita a consulta à conta do token.
+     * O CPF enviado pelo cliente não participa da busca.
+     */
     @GetMapping
-     public List<UsuarioConsultaResponse> consultusUario(){
-             return usuarioRepository.findAll()
-                     .stream()
-                     .map(UsuarioConsultaResponse::new).toList();
+    public ResponseEntity<List<UsuarioConsultaResponse>> consultusUario(
+            HttpServletRequest request) {
+        Usuario usuario = buscarUsuarioAutenticado(request);
+        return ResponseEntity.ok(List.of(new UsuarioConsultaResponse(usuario)));
     }
 
+    /**
+     * Retorna os dados da conta identificada pelo CPF presente no JWT validado.
+     *
+     * Parâmetros de CPF ou id adicionados à URL são ignorados: a identidade vem
+     * exclusivamente do atributo que JwtFilter grava após validar o token.
+     */
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioConsultaResponse> consultarUsuarioAutenticado(
+            HttpServletRequest request) {
+        return ResponseEntity.ok(new UsuarioConsultaResponse(buscarUsuarioAutenticado(request)));
+    }
+
+    /** Consulta por id somente a própria conta; ids de outros usuários recebem 403. */
     @GetMapping("/{id}")
-    public ResponseEntity<UsuarioConsultaResponse> consultUsuarioPorId(@PathVariable Long id) {
+    public ResponseEntity<UsuarioConsultaResponse> consultUsuarioPorId(
+            @PathVariable Long id, HttpServletRequest request) {
         var usuario = usuarioRepository.findById(id).orElse(null);
 
         if(usuario == null){
             return  ResponseEntity.notFound().build();
         }
+        String cpfAutenticado = cpfAutenticado(request);
+        if (!CpfUtils.normalizar(usuario.getCpf()).equals(CpfUtils.normalizar(cpfAutenticado))) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Não é permitido consultar dados de outro usuário.");
+        }
         return ResponseEntity.ok(new UsuarioConsultaResponse(usuario));
     }
 
+    /** Obtém a conta associada à identidade autenticada, sem aceitar identificadores do cliente. */
+    private Usuario buscarUsuarioAutenticado(HttpServletRequest request) {
+        String cpf = cpfAutenticado(request);
+        return usuarioRepository.findByCpf(cpf).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário autenticado não encontrado."));
+    }
+
+    /** Lê o CPF que o JwtFilter colocou na requisição após validar a assinatura do token. */
+    private String cpfAutenticado(HttpServletRequest request) {
+        Object identidade = request.getAttribute("authenticatedCpf");
+        if (!(identidade instanceof String cpf) || cpf.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "A sessão autenticada não identificou o usuário.");
+        }
+        return cpf;
+    }
+
+    /** Cria uma conta vinculada a uma empresa existente e salva a senha codificada. */
     @PostMapping
     public ResponseEntity<UsuarioResponse> cadastrarUsuario(@RequestBody UsuarioRequest usuarioRequest){
 
@@ -78,6 +127,7 @@ public class UsuarioController {
                 "Cadastro com sucesso!"));
     }
 
+    /** Atualiza os dados da conta; uma senha ausente ou em branco mantém a senha atual. */
     @PutMapping("/{id}")// atualiza tudo
     public ResponseEntity <UsuarioResponse>
     atualizarUsuario(@PathVariable Long id, @RequestBody UsuarioRequest usuarioRequest){
@@ -112,6 +162,7 @@ public class UsuarioController {
         return ResponseEntity.notFound().build();
     }
 
+    /** Altera apenas o status da conta, sem reescrever os demais campos. */
     @PatchMapping("/{id}/status")// atualiza pontualmente
     public ResponseEntity<UsuarioResponse> AtualizarStatus(@PathVariable Long id, @RequestBody AtualizaStatusUsuarioRequest usuarioRequest){
 
@@ -128,6 +179,7 @@ public class UsuarioController {
     }
 
 
+    /** Desativa logicamente a conta; não remove o registro do banco. */
     @DeleteMapping("/{id}")// deletar
     public ResponseEntity <UsuarioResponse>
     atualizarStatusUsuario(@PathVariable Long id){

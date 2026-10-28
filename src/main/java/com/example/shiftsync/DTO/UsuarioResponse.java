@@ -2,6 +2,7 @@ package com.example.shiftsync.DTO;
 
 import java.security.PrivateKey;
 
+/** Resposta curta para operações de cadastro ou atualização de usuário. */
 public class UsuarioResponse {
 
     public UsuarioResponse(){}

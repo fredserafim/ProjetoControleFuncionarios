@@ -5,6 +5,13 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Entidade persistida que representa uma área organizacional da empresa.
+ *
+ * {@code @Entity} faz o Hibernate mapear a classe para uma tabela. O identificador
+ * é gerado pelo banco, e os métodos de acesso permitem que JPA e as demais camadas
+ * leiam e atualizem os campos.
+ */
 @Entity
 public class Departamento {
 
@@ -17,6 +24,7 @@ public class Departamento {
 
     private String departamento;
 
+    /** Turnos associados ao departamento conforme o relacionamento configurado no JPA. */
     @OneToMany
     private List<Turno> turno;
 

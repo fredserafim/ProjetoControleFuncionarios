@@ -4,6 +4,12 @@ import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.entities.Funcionario;
 import com.example.shiftsync.entities.Turno;
 
+/**
+ * Valores aceitos pela API ao cadastrar ou editar um departamento.
+ *
+ * DTO separa o formato HTTP da entidade persistida, permitindo que o controller
+ * decida quais campos usar sem expor diretamente o modelo JPA.
+ */
 public class DepartamentoRequest {
 
     public DepartamentoRequest() {

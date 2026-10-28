@@ -23,6 +23,12 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * Endpoints para consultar e manter modelos de jornada e suas escalas.
+ *
+ * As regras de horários, descansos, intervalos e ocorrências são centralizadas
+ * em {@link RegrasJornada}; este controller traduz erros de entrada em respostas HTTP.
+ */
 @RestController
 @RequestMapping("/turnos")
 public class TurnoController {
@@ -36,6 +42,7 @@ public class TurnoController {
     @Autowired
     private FuncionarioRepository funcionarioRepository;
 
+    /** Retorna os turnos em DTOs, evitando expor diretamente o modelo JPA. */
     @GetMapping
     public List<TurnoConsultaResponse> consultTurno() {
         return turnoRepository.findAll().stream()
@@ -43,6 +50,7 @@ public class TurnoController {
                 .toList();
     }
 
+    /** Consulta um turno pelo identificador ou responde 404. */
     @GetMapping("/{id}")
     public ResponseEntity<TurnoConsultaResponse> consultTurnoId(@PathVariable Long id) {
         return turnoRepository.findById(id)
@@ -50,6 +58,7 @@ public class TurnoController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /** Cria um turno e, quando há escala, valida e calcula suas cargas antes de salvar. */
     @PostMapping
     @Transactional
     public ResponseEntity<TurnoResponse> cadastrarTurno(@RequestBody TurnoRequest request) {
@@ -64,6 +73,7 @@ public class TurnoController {
         return ResponseEntity.ok(new TurnoResponse(turno.getId(), "Cadastro com sucesso!"));
     }
 
+    /** Disponibiliza a mesma listagem de turnos em uma resposta ResponseEntity. */
     @GetMapping("/listarTudo")
     public ResponseEntity<List<TurnoConsultaResponse>> listarTodos() {
         return ResponseEntity.ok(turnoRepository.findAll().stream()
@@ -71,6 +81,10 @@ public class TurnoController {
                 .toList());
     }
 
+    /**
+     * Atualiza os dados do turno após bloquear funcionários e o turno afetados.
+     * Revalida atribuições vigentes para evitar conflitos de horário decorrentes da edição.
+     */
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<TurnoResponse> atualizarTurno(
@@ -114,6 +128,7 @@ public class TurnoController {
         return ResponseEntity.ok(new TurnoResponse(turno.getId(), "Turno atualizado com sucesso!"));
     }
 
+    /** Informa se a escala prevê o início de uma ocorrência na data consultada. */
     @GetMapping("/{id}/trabalha")
     public ResponseEntity<EstadoTurnoResponse> consultTrabalhoNaData(
             @PathVariable Long id, @RequestParam LocalDate data) {
@@ -122,6 +137,7 @@ public class TurnoController {
                 data, RegrasJornada.trabalhaNaData(turno, data)));
     }
 
+    /** Expande a escala recorrente em ocorrências que cruzam o intervalo informado. */
     @GetMapping("/{id}/ocorrencias")
     public ResponseEntity<List<OcorrenciaTurnoResponse>> consultarOcorrencias(
             @PathVariable Long id,
@@ -133,6 +149,7 @@ public class TurnoController {
                 .toList());
     }
 
+    /** Altera somente o status do turno e retorna 404 para identificador inexistente. */
     @PatchMapping("/{id}/status")
     public ResponseEntity<TurnoResponse> atualizarStatusTurno(
             @PathVariable Long id, @RequestBody AtualizaStatusTurnoRequest request) {
@@ -145,6 +162,7 @@ public class TurnoController {
         return ResponseEntity.ok(new TurnoResponse(turno.getId(), "Status atualizado com sucesso!"));
     }
 
+    /** Desativa o turno logicamente; a configuração e o histórico permanecem no banco. */
     @DeleteMapping("/{id}")
     public ResponseEntity<TurnoResponse> desativarTurno(@PathVariable Long id) {
         Turno turno = turnoRepository.findById(id).orElse(null);
@@ -156,6 +174,10 @@ public class TurnoController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Copia somente os campos fornecidos no DTO para a entidade.
+     * Os dados de jornada são aplicados em conjunto para preservar configurações parciais.
+     */
     private void aplicarDados(Turno turno, TurnoRequest request) {
         if (request.getNome() != null || request.getPeriodo() != null) {
             String nome = request.getNome() == null
@@ -196,6 +218,7 @@ public class TurnoController {
         turno.setCargaMensalPadraoMinutos(request.getCargaMensalPadraoMinutos());
     }
 
+    /** Verifica se a edição do modelo mantém válidas suas atribuições existentes. */
     private void validarAtribuicoes(
             Turno turnoAtualizado, List<AtribuicaoTurno> atribuicoes) {
         for (AtribuicaoTurno atribuicao : atribuicoes) {

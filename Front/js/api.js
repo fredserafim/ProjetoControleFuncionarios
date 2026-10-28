@@ -1,5 +1,7 @@
+// Camada única de comunicação com a API: centraliza cabeçalhos, autenticação e erros.
 const API_BASE_URL = "http://localhost:8080";
 
+// Mostra o erro no local da interface que estiver visível, quando houver um destino.
 function mostrarErroApi(mensagem) {
   const elemento = document.querySelector("#mensagem-login")
     || document.querySelector(".dashboard-panel:not([hidden]) [data-status]");
@@ -10,6 +12,11 @@ function mostrarErroApi(mensagem) {
   }
 }
 
+/**
+ * Executa a chamada HTTP e converte a resposta para JSON ou texto.
+ * Usa o JWT salvo no navegador fora do endpoint de login; erros de rede e HTTP
+ * são exibidos e lançados para que o formulário chamador também possa reagir.
+ */
 async function requisicao(caminho, opcoes = {}) {
   const url = `${API_BASE_URL}${caminho}`;
   const metodo = opcoes.method || "GET";
@@ -88,6 +95,7 @@ async function requisicao(caminho, opcoes = {}) {
 }
 
 const api = {
+  // Métodos básicos usados pelos wrappers de cada recurso.
   get(caminho) {
     return requisicao(caminho);
   },
@@ -117,6 +125,7 @@ const api = {
     return requisicao(caminho, { method: "DELETE" });
   },
 
+  // Os wrappers mantêm caminhos e parâmetros da API em um só lugar.
   listarUsuarios() {
     return this.get("/usuarios");
   },
