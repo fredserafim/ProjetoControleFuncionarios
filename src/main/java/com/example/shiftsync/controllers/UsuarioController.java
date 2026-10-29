@@ -8,6 +8,8 @@ import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.EmpresaRepository;
 import com.example.shiftsync.repository.UsuarioRepository;
 import com.example.shiftsync.utils.CpfUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/usuarios")
+@Tag(name = "Usuario Controller",description = " Classe responsavel por fazer o controle do CRUD do usuario")
 public class UsuarioController {
 
     @Autowired
@@ -64,6 +67,7 @@ public class UsuarioController {
 
     /** Consulta por id somente a própria conta; ids de outros usuários recebem 403. */
     @GetMapping("/{id}")
+    @Operation(summary = "Buscar Usuario Por ID",description = "Metodo de consulta de usuario por ID que retorna somente um usuario que recebe como parametro o Path variable que recebe o longID")
     public ResponseEntity<UsuarioConsultaResponse> consultUsuarioPorId(
             @PathVariable Long id, HttpServletRequest request) {
         var usuario = usuarioRepository.findById(id).orElse(null);
@@ -98,6 +102,8 @@ public class UsuarioController {
 
     /** Cria uma conta vinculada a uma empresa existente e salva a senha codificada. */
     @PostMapping
+    @Operation(summary = "Posta os dados",description = "Metodo para postar o usuario , com nome, cpf. data de nascimento,senha, empresa e status" +
+            " recebe usuariorequest com metodo Requestbody")
     public ResponseEntity<UsuarioResponse> cadastrarUsuario(@RequestBody UsuarioRequest usuarioRequest){
 
         if (usuarioRequest.getEmpresa_id() == null
@@ -128,7 +134,8 @@ public class UsuarioController {
     }
 
     /** Atualiza os dados da conta; uma senha ausente ou em branco mantém a senha atual. */
-    @PutMapping("/{id}")// atualiza tudo
+    @PutMapping("/{id}")
+    @Operation(summary = "Atualiza tudo",description = "Metodo de atualização de usuario recebe como parametro path variable que recebe ID e requestbody recebe Usuariorequest")// atualiza tudo
     public ResponseEntity <UsuarioResponse>
     atualizarUsuario(@PathVariable Long id, @RequestBody UsuarioRequest usuarioRequest){
         if (usuarioRequest.getEmpresa_id() == null) {
@@ -163,7 +170,8 @@ public class UsuarioController {
     }
 
     /** Altera apenas o status da conta, sem reescrever os demais campos. */
-    @PatchMapping("/{id}/status")// atualiza pontualmente
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Atualiza somente status",description = "Metodo de atualização de status do usuario e recebe como parametro o Path variable que recebe ID e request body que recebe AtualizaStatusUsuarioRequest ")// atualiza pontualmente
     public ResponseEntity<UsuarioResponse> AtualizarStatus(@PathVariable Long id, @RequestBody AtualizaStatusUsuarioRequest usuarioRequest){
 
         Usuario usuarioBanco = usuarioRepository.findById(id).orElse(null);
@@ -180,7 +188,8 @@ public class UsuarioController {
 
 
     /** Desativa logicamente a conta; não remove o registro do banco. */
-    @DeleteMapping("/{id}")// deletar
+    @DeleteMapping("/{id}")
+    @Operation(summary = "deleta ( muda status para D )",description = "Metodo deleta  usuario por ID , recebe como parametro o Path variable")// deletar
     public ResponseEntity <UsuarioResponse>
     atualizarStatusUsuario(@PathVariable Long id){
         // consulta no banco
