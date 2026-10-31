@@ -6,6 +6,7 @@ import com.example.shiftsync.DTO.LoginRequest;
 import com.example.shiftsync.DTO.LoginResponse;
 import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.UsuarioRepository;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,8 @@ import java.security.MessageDigest;
  */
 @RestController
 @RequestMapping("/login")
+@Tag(name = "Login Controller",description = " Classe responsavel por fazer o controle do login do usuario")
+
 public class LoginController {
 
     @Autowired

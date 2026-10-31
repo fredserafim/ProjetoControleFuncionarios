@@ -15,6 +15,8 @@ import com.example.shiftsync.repository.RealizacaoTurnoRepository;
 import com.example.shiftsync.repository.TurnoRopository;
 import com.example.shiftsync.utils.RegrasJornada;
 import com.example.shiftsync.utils.CpfUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/funcionario")
+@Tag(name =" Funcionario Controller", description =  "Classe responsavel por fazer o controle do CRUD dos funcionarios")
 public class FuncionarioController {
 
 
@@ -72,6 +75,8 @@ public class FuncionarioController {
 
     /** Busca um funcionário pelo id; retorna 404 quando não existe. */
     @GetMapping("/{id}")
+    @Operation(summary = "Busca Funcionario por ID", description = "Responsavel por buscar funcionario por id" +
+            "cado inexistente retorna 404, recebendo Pathvariable id como parametro ")
     public ResponseEntity<FuncionarioResponse> consultFuncionarioId(@PathVariable Long id) {
         return funcionarioRepository.findById(id)
                 .map(funcionario -> ResponseEntity.ok(new FuncionarioResponse(funcionario)))
@@ -80,6 +85,8 @@ public class FuncionarioController {
 
     /** Lista funcionários vinculados ao departamento informado. */
     @GetMapping("/{id}/departamento")
+    @Operation(summary = "Lista funcionarios vinculados ao departamento informado", description = "Responsavel por buscar funcionario por id vinculado a um departamento " +
+            "recebendo como parametro de entrada pathvariable id")
     public List<FuncionarioResponse> consultaFuncionarioPorDepartamento(@PathVariable Long id){
         return funcionarioRepository.findByDepartamento_Id(id).stream()
                 .map(FuncionarioResponse::new)
@@ -194,6 +201,8 @@ public class FuncionarioController {
      */
     @GetMapping("/{id}/horas-extras")
     @Transactional(readOnly = true)
+    @Operation(summary = "Consulta a Hora Extra",description = " Contabiliza pendencias de horas com comparativos de horas" +
+            "atribuidas, utilizando com parametro entradas PathVariable ID , RequestParam String e HTTPServeletRequest")
     public ResponseEntity<ApuracaoHorasExtrasResponse> consultarHorasExtras(
             @PathVariable Long id,
             @RequestParam String mes,
@@ -262,6 +271,8 @@ public class FuncionarioController {
      */
     @PostMapping
     @Transactional
+    @Operation(summary = "Cadastra Funcionario", description = "Responsavel por cadastrar um funcionario usando como parametros de entrada" +
+            "RequestBody funcionario Request e salvando no banco informações pessoais")
     public ResponseEntity<FuncionarioResponse> cadastrarFuncionario(@RequestBody FuncionarioRequest funcionarioRequest) {
         Funcionario funcionarioBanco = new Funcionario();
 

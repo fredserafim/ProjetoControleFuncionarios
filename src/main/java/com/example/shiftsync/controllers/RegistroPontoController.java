@@ -19,6 +19,7 @@ import com.example.shiftsync.repository.RegistroPontoAuditoriaRepository;
 import com.example.shiftsync.utils.CpfUtils;
 import com.example.shiftsync.utils.RegrasJornada;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +51,7 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/ponto")
+@Tag(name = "Registro Ponto Controller",description = " Classe responsavel por fazer o controle do registro de ponto do funcionario")
 public class RegistroPontoController {
 
     private final FuncionarioRepository funcionarioRepository;

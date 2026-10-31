@@ -3,6 +3,7 @@ package com.example.shiftsync.controllers;
 import com.example.shiftsync.DTO.*;
 import com.example.shiftsync.entities.Departamento;
 import com.example.shiftsync.repository.DepartamentoRepository;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import java.util.List;
 /** Expõe operações de consulta, cadastro, edição e desativação lógica de departamentos. */
 @RestController
 @RequestMapping("/departamentos")
+@Tag(name = "Departamento Controller",description = " Classe responsavel por fazer o controle do CRUD do usuario")
 public class DepartamentoController {
 
     @Autowired

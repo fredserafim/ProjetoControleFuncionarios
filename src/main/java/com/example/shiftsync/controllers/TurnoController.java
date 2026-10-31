@@ -8,6 +8,7 @@ import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
 import com.example.shiftsync.repository.FuncionarioRepository;
 import com.example.shiftsync.repository.TurnoRopository;
 import com.example.shiftsync.utils.RegrasJornada;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,8 @@ import java.util.Set;
  */
 @RestController
 @RequestMapping("/turnos")
+@Tag(name = "Turno Controller",description = " Classe responsavel por fazer o controle do CRUD dos turnos")
+
 public class TurnoController {
 
     @Autowired
