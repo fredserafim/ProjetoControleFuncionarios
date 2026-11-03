@@ -8,10 +8,12 @@ import com.example.shiftsync.entities.RealizacaoTurno;
 import com.example.shiftsync.entities.RegistroPontoAuditoria;
 import com.example.shiftsync.entities.StatusRealizacaoTurno;
 import com.example.shiftsync.entities.Turno;
+import com.example.shiftsync.entities.Usuario;
 import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
 import com.example.shiftsync.repository.FuncionarioRepository;
 import com.example.shiftsync.repository.RealizacaoTurnoRepository;
 import com.example.shiftsync.repository.RegistroPontoAuditoriaRepository;
+import com.example.shiftsync.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,8 +60,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class RegistroPontoControllerTest {
 
-    private static final String CPF = "52998224725";
-    private static final LocalDate DATA = LocalDate.of(2026, 10, 27);
+    private static final String CPF_GESTOR = "52998224725";
+    private static final String CPF_FUNCIONARIO = "11144477735";
+    private static final String CPF_OUTRO_FUNCIONARIO = "93541134780";
+    private static final LocalDate DATA = LocalDate.of(2026, 11, 3);
     private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
 
     @Mock
@@ -74,6 +78,9 @@ class RegistroPontoControllerTest {
     @Mock
     private RegistroPontoAuditoriaRepository auditoriaRepository;
 
+    @Mock
+    private UsuarioRepository usuarioRepository;
+
     private MockMvc mockMvc;
     private MutableClock clock;
     private Funcionario funcionario;
@@ -82,12 +89,19 @@ class RegistroPontoControllerTest {
 
     @BeforeEach
     void configurar() {
-        clock = new MutableClock(LocalDateTime.of(2026, 10, 27, 9, 0));
+        clock = new MutableClock(LocalDateTime.of(2026, 11, 4, 20, 0));
         funcionario = new Funcionario();
         funcionario.setId(7L);
         funcionario.setNome("Ana Silva");
-        funcionario.setCpf(CPF);
+        funcionario.setCpf(CPF_FUNCIONARIO);
         funcionario.setStatus("A");
+        Funcionario outroFuncionario = new Funcionario();
+        outroFuncionario.setId(8L);
+        outroFuncionario.setNome("Bruno Souza");
+        outroFuncionario.setCpf(CPF_OUTRO_FUNCIONARIO);
+        outroFuncionario.setStatus("A");
+        Usuario gestor = new Usuario("Gestor", CPF_GESTOR, "1990-01-01");
+        gestor.setStatus("A");
 
         Turno turno = new Turno();
         turno.setId(11L);
@@ -107,8 +121,12 @@ class RegistroPontoControllerTest {
         atribuicao.setVigenciaInicio(LocalDateTime.of(2026, 1, 1, 0, 0));
 
         persistido = new AtomicReference<>();
-        lenient().when(funcionarioRepository.findAllByCpfNormalizado(CPF))
+        lenient().when(funcionarioRepository.findAllByCpfNormalizado(CPF_FUNCIONARIO))
                 .thenReturn(List.of(funcionario));
+        lenient().when(funcionarioRepository.findAllByCpfNormalizado(CPF_OUTRO_FUNCIONARIO))
+                .thenReturn(List.of(outroFuncionario));
+        lenient().when(usuarioRepository.findByCpf(CPF_GESTOR))
+                .thenReturn(Optional.of(gestor));
         lenient().when(funcionarioRepository.findByIdForUpdate(7L))
                 .thenReturn(Optional.of(funcionario));
         lenient().when(atribuicaoTurnoRepository
@@ -116,6 +134,9 @@ class RegistroPontoControllerTest {
                 .thenReturn(List.of(atribuicao));
         lenient().when(realizacaoTurnoRepository.findByAtribuicao_IdAndInicioPlanejado(
                 3L, DATA.atTime(8, 0)))
+                .thenAnswer(invocacao -> Optional.ofNullable(persistido.get()));
+        lenient().when(realizacaoTurnoRepository.findByAtribuicao_IdAndInicioPlanejado(
+                3L, DATA.atTime(22, 0)))
                 .thenAnswer(invocacao -> Optional.ofNullable(persistido.get()));
         lenient().when(realizacaoTurnoRepository.save(any(RealizacaoTurno.class)))
                 .thenAnswer(invocacao -> {
@@ -131,6 +152,7 @@ class RegistroPontoControllerTest {
                 atribuicaoTurnoRepository,
                 realizacaoTurnoRepository,
                 auditoriaRepository,
+                usuarioRepository,
                 clock)).build();
     }
 
@@ -142,28 +164,33 @@ class RegistroPontoControllerTest {
         registrar("SAIDA_FINAL", "18:00", "IRREGULAR");
 
         mockMvc.perform(get("/ponto")
-                        .param("cpf", CPF)
+                        .param("cpf", CPF_FUNCIONARIO)
                         .param("data", DATA.toString())
                         .with(cpfAutenticado()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.entrada").value("2026-10-27T08:00:00"))
-                .andExpect(jsonPath("$.saidaIntervalo").value("2026-10-27T12:00:00"))
-                .andExpect(jsonPath("$.retornoIntervalo").value("2026-10-27T13:30:00"))
-                .andExpect(jsonPath("$.saidaFinal").value("2026-10-27T18:00:00"))
+                .andExpect(jsonPath("$.entrada").value("2026-11-03T08:00:00"))
+                .andExpect(jsonPath("$.saidaIntervalo").value("2026-11-03T12:00:00"))
+                .andExpect(jsonPath("$.retornoIntervalo").value("2026-11-03T13:30:00"))
+                .andExpect(jsonPath("$.saidaFinal").value("2026-11-03T18:00:00"))
                 .andExpect(jsonPath("$.minutosTrabalhados").value(510));
 
-        assertEquals(LocalDateTime.of(2026, 10, 27, 8, 0), persistido.get().getInicioReal());
-        assertEquals(LocalDateTime.of(2026, 10, 27, 12, 0),
+        assertEquals(LocalDateTime.of(2026, 11, 3, 8, 0), persistido.get().getInicioReal());
+        assertEquals(LocalDateTime.of(2026, 11, 3, 12, 0),
                 persistido.get().getInicioIntervaloReal());
-        assertEquals(LocalDateTime.of(2026, 10, 27, 13, 30),
+        assertEquals(LocalDateTime.of(2026, 11, 3, 13, 30),
                 persistido.get().getFimIntervaloReal());
-        assertEquals(LocalDateTime.of(2026, 10, 27, 18, 0), persistido.get().getFimReal());
+        assertEquals(LocalDateTime.of(2026, 11, 3, 18, 0), persistido.get().getFimReal());
         assertEquals(1, persistido.get().getIntervalosNaoTrabalhados().size());
         assertEquals(510, minutosTrabalhados(persistido.get()));
         verify(realizacaoTurnoRepository, org.mockito.Mockito.times(4))
                 .save(any(RealizacaoTurno.class));
-        verify(auditoriaRepository, org.mockito.Mockito.times(4))
-                .save(any(RegistroPontoAuditoria.class));
+        org.mockito.ArgumentCaptor<RegistroPontoAuditoria> auditorias =
+                org.mockito.ArgumentCaptor.forClass(RegistroPontoAuditoria.class);
+        verify(auditoriaRepository, org.mockito.Mockito.times(4)).save(auditorias.capture());
+        auditorias.getAllValues().forEach(auditoria -> {
+            assertEquals(CPF_GESTOR, auditoria.getRegistradoPorCpf());
+            assertEquals(LocalDateTime.of(2026, 11, 4, 20, 0), auditoria.getRegistradoEm());
+        });
     }
 
     @Test
@@ -191,24 +218,160 @@ class RegistroPontoControllerTest {
     }
 
     @Test
-    void rejeitaCpfInvalidoEFuncionarioDeOutroCpf() throws Exception {
+    void gestorConsultaFuncionarioComCpfDiferenteDoJwt() throws Exception {
         mockMvc.perform(get("/ponto/funcionario")
                         .param("cpf", "11111111111")
                         .with(cpfAutenticado()))
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(get("/ponto/funcionario")
-                        .param("cpf", "11144477735")
+                        .param("cpf", CPF_OUTRO_FUNCIONARIO)
                         .with(cpfAutenticado()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(8))
+                .andExpect(jsonPath("$.nome").value("Bruno Souza"));
 
         verifyNoInteractions(realizacaoTurnoRepository, auditoriaRepository);
     }
 
     @Test
+    void gestorRegistraPontoDeOutroFuncionarioEPermaneceResponsavelNaAuditoria()
+            throws Exception {
+        Funcionario outroFuncionario = new Funcionario();
+        outroFuncionario.setId(8L);
+        outroFuncionario.setNome("Bruno Souza");
+        outroFuncionario.setCpf(CPF_OUTRO_FUNCIONARIO);
+        outroFuncionario.setStatus("A");
+        AtribuicaoTurno outraAtribuicao = new AtribuicaoTurno();
+        outraAtribuicao.setId(4L);
+        outraAtribuicao.setFuncionario(outroFuncionario);
+        outraAtribuicao.setTurno(atribuicao.getTurno());
+        outraAtribuicao.setVigenciaInicio(LocalDateTime.of(2026, 1, 1, 0, 0));
+        when(funcionarioRepository.findByIdForUpdate(8L))
+                .thenReturn(Optional.of(outroFuncionario));
+        when(atribuicaoTurnoRepository
+                .findByFuncionario_IdOrderByVigenciaInicioAsc(8L))
+                .thenReturn(List.of(outraAtribuicao));
+        when(realizacaoTurnoRepository.findByAtribuicao_IdAndInicioPlanejado(
+                4L, DATA.atTime(8, 0))).thenReturn(Optional.empty());
+
+        postarMarcacao(CPF_OUTRO_FUNCIONARIO, DATA, "ENTRADA", "08:00")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entrada").value("2026-11-03T08:00:00"));
+
+        verify(auditoriaRepository).save(org.mockito.ArgumentMatchers.argThat(
+                auditoria -> CPF_GESTOR.equals(auditoria.getRegistradoPorCpf())
+                        && "ENTRADA".equals(auditoria.getMarcacao())));
+    }
+
+    @Test
+    void rejeitaAcessoSemGestorAutenticadoEmTodosOsEndpoints() throws Exception {
+        mockMvc.perform(get("/ponto/funcionario").param("cpf", CPF_FUNCIONARIO))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/ponto")
+                        .param("cpf", CPF_FUNCIONARIO).param("data", DATA.toString()))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/ponto/periodo")
+                        .param("cpf", CPF_FUNCIONARIO)
+                        .param("inicio", DATA.toString()).param("fim", DATA.toString()))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/ponto/resumo-mensal")
+                        .param("cpf", CPF_FUNCIONARIO).param("mes", "2026-11"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/ponto/marcacoes")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"cpf":"%s","data":"%s","marcacao":"ENTRADA","horario":"08:00"}
+                                """.formatted(CPF_FUNCIONARIO, DATA)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rejeitaGestorInativoFuncionarioInativoEFuncionarioInexistente() throws Exception {
+        when(usuarioRepository.findByCpf(CPF_GESTOR)).thenReturn(Optional.empty());
+        mockMvc.perform(get("/ponto/funcionario")
+                        .param("cpf", CPF_FUNCIONARIO).with(cpfAutenticado()))
+                .andExpect(status().isUnauthorized());
+
+        Usuario gestorInativo = new Usuario("Gestor", CPF_GESTOR, "1990-01-01");
+        gestorInativo.setStatus("I");
+        when(usuarioRepository.findByCpf(CPF_GESTOR)).thenReturn(Optional.of(gestorInativo));
+        mockMvc.perform(get("/ponto/funcionario")
+                        .param("cpf", CPF_FUNCIONARIO).with(cpfAutenticado()))
+                .andExpect(status().isForbidden());
+
+        Usuario gestorAtivo = new Usuario("Gestor", CPF_GESTOR, "1990-01-01");
+        gestorAtivo.setStatus("A");
+        when(usuarioRepository.findByCpf(CPF_GESTOR)).thenReturn(Optional.of(gestorAtivo));
+        funcionario.setStatus("I");
+        mockMvc.perform(get("/ponto/funcionario")
+                        .param("cpf", CPF_FUNCIONARIO).with(cpfAutenticado()))
+                .andExpect(status().isForbidden());
+
+        funcionario.setStatus("A");
+        when(funcionarioRepository.findAllByCpfNormalizado(CPF_OUTRO_FUNCIONARIO))
+                .thenReturn(List.of());
+        mockMvc.perform(get("/ponto/funcionario")
+                        .param("cpf", CPF_OUTRO_FUNCIONARIO).with(cpfAutenticado()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void naoPermiteConsultarOuRegistrarEmDataSemJornadaVigente() throws Exception {
+        when(atribuicaoTurnoRepository
+                .findByFuncionario_IdOrderByVigenciaInicioAsc(7L))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/ponto")
+                        .param("cpf", CPF_FUNCIONARIO)
+                        .param("data", DATA.toString())
+                        .with(cpfAutenticado()))
+                .andExpect(status().isNotFound());
+
+        postarMarcacao("ENTRADA", "08:00")
+                .andExpect(status().isNotFound());
+        verify(realizacaoTurnoRepository, never()).save(any(RealizacaoTurno.class));
+        verify(auditoriaRepository, never()).save(any(RegistroPontoAuditoria.class));
+    }
+
+    @Test
+    void permiteLancarJornadaPassadaMasRejeitaDataEHorarioFuturos() throws Exception {
+        registrar("ENTRADA", "08:00", "EM_ANDAMENTO");
+        assertEquals(LocalDateTime.of(2026, 11, 3, 8, 0), persistido.get().getInicioReal());
+
+        clock.definir(DATA.atTime(10, 0));
+        postarMarcacao("SAIDA_INTERVALO", "12:00")
+                .andExpect(status().isBadRequest());
+        postarMarcacao(DATA.plusDays(7), "ENTRADA", "08:00")
+                .andExpect(status().isBadRequest());
+        assertNull(persistido.get().getInicioIntervaloReal());
+    }
+
+    @Test
+    void associaCorretamenteMarcacoesDeJornadaNoturnaAoDiaSeguinte() throws Exception {
+        Turno turnoNoturno = atribuicao.getTurno();
+        turnoNoturno.setHorarioInicio(LocalTime.of(22, 0));
+        turnoNoturno.setHorarioFim(LocalTime.of(6, 0));
+        turnoNoturno.setIntervalos(List.of(
+                new IntervaloJornada(LocalTime.of(1, 0), LocalTime.of(1, 30))));
+
+        registrar("ENTRADA", "22:00", "EM_ANDAMENTO");
+        registrar("SAIDA_INTERVALO", "01:00", "EM_ANDAMENTO");
+        registrar("RETORNO_INTERVALO", "01:30", "EM_ANDAMENTO");
+        registrar("SAIDA_FINAL", "06:00", "CONCLUIDO");
+
+        assertEquals(LocalDateTime.of(2026, 11, 3, 22, 0), persistido.get().getInicioReal());
+        assertEquals(LocalDateTime.of(2026, 11, 4, 1, 0),
+                persistido.get().getInicioIntervaloReal());
+        assertEquals(LocalDateTime.of(2026, 11, 4, 1, 30),
+                persistido.get().getFimIntervaloReal());
+        assertEquals(LocalDateTime.of(2026, 11, 4, 6, 0), persistido.get().getFimReal());
+    }
+
+    @Test
     void naoPermiteRetornoDoIntervaloSemSaidaAnterior() throws Exception {
         registrar("ENTRADA", "09:00", "EM_ANDAMENTO");
-        clock.definir(LocalDateTime.of(2026, 10, 27, 11, 0));
+        clock.definir(DATA.atTime(20, 0));
         clearInvocations(realizacaoTurnoRepository);
         postarMarcacao("RETORNO_INTERVALO", "12:30")
                 .andExpect(status().isBadRequest());
@@ -219,7 +382,7 @@ class RegistroPontoControllerTest {
     @Test
     void consultaJornadaSemMarcacoesComoPendente() throws Exception {
         mockMvc.perform(get("/ponto")
-                        .param("cpf", CPF)
+                        .param("cpf", CPF_FUNCIONARIO)
                         .param("data", DATA.toString())
                         .with(cpfAutenticado()))
                 .andExpect(status().isOk())
@@ -229,10 +392,11 @@ class RegistroPontoControllerTest {
 
     @Test
     void naoContaFaltaAntesDoFimDaJornadaEIncluiPendencia() throws Exception {
-        atribuicao.setVigenciaInicio(DATA.atStartOfDay());
+        atribuicao.setVigenciaInicio(LocalDate.of(2026, 10, 27).atStartOfDay());
+        clock.definir(LocalDateTime.of(2026, 10, 27, 9, 0));
 
         mockMvc.perform(get("/ponto/resumo-mensal")
-                        .param("cpf", CPF)
+                        .param("cpf", CPF_FUNCIONARIO)
                         .param("mes", "2026-10")
                         .with(cpfAutenticado()))
                 .andExpect(status().isOk())
@@ -241,7 +405,7 @@ class RegistroPontoControllerTest {
 
         clock.definir(LocalDateTime.of(2026, 10, 27, 18, 0));
         mockMvc.perform(get("/ponto/resumo-mensal")
-                        .param("cpf", CPF)
+                        .param("cpf", CPF_FUNCIONARIO)
                         .param("mes", "2026-10")
                         .with(cpfAutenticado()))
                 .andExpect(status().isOk())
@@ -275,7 +439,7 @@ class RegistroPontoControllerTest {
                 .thenReturn(List.of(noturna));
 
         mockMvc.perform(get("/ponto/resumo-mensal")
-                        .param("cpf", CPF)
+                        .param("cpf", CPF_FUNCIONARIO)
                         .param("mes", "2026-10")
                         .with(cpfAutenticado()))
                 .andExpect(status().isOk())
@@ -283,7 +447,7 @@ class RegistroPontoControllerTest {
                 .andExpect(jsonPath("$.minutosPrevistos").value(120));
 
         mockMvc.perform(get("/ponto/resumo-mensal")
-                        .param("cpf", CPF)
+                        .param("cpf", CPF_FUNCIONARIO)
                         .param("mes", "2026-11")
                         .with(cpfAutenticado()))
                 .andExpect(status().isOk())
@@ -294,7 +458,7 @@ class RegistroPontoControllerTest {
     @Test
     void consultaRegistrosDePontoPorPeriodo() throws Exception {
         mockMvc.perform(get("/ponto/periodo")
-                        .param("cpf", CPF)
+                        .param("cpf", CPF_FUNCIONARIO)
                         .param("inicio", DATA.toString())
                         .param("fim", DATA.toString())
                         .with(cpfAutenticado()))
@@ -305,7 +469,6 @@ class RegistroPontoControllerTest {
 
     private void registrar(String marcacao, String horario, String statusEsperado)
             throws Exception {
-        clock.definir(DATA.atTime(LocalTime.parse(horario)));
         postarMarcacao(marcacao, horario)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(statusEsperado));
@@ -314,7 +477,19 @@ class RegistroPontoControllerTest {
     private org.springframework.test.web.servlet.ResultActions postarMarcacao(
             String marcacao, String horario)
             throws Exception {
-        String horarioJson = horario == null ? "" : "\"horario\": \"%s\",".formatted(horario);
+        return postarMarcacao(DATA, marcacao, horario);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions postarMarcacao(
+            LocalDate data, String marcacao, String horario)
+            throws Exception {
+        return postarMarcacao(CPF_FUNCIONARIO, data, marcacao, horario);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions postarMarcacao(
+            String cpfFuncionario, LocalDate data, String marcacao, String horario)
+            throws Exception {
+        String horarioJson = horario == null ? "" : "\"horario\": \"%s\",\n".formatted(horario);
         return mockMvc.perform(post("/ponto/marcacoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -322,15 +497,16 @@ class RegistroPontoControllerTest {
                           "cpf": "%s",
                           "data": "%s",
                           %s
+                          "registradoPorCpf": "00000000000",
                           "marcacao": "%s"
                         }
-                        """.formatted(CPF, DATA, horarioJson, marcacao))
+                        """.formatted(cpfFuncionario, data, horarioJson, marcacao))
                 .with(cpfAutenticado()));
     }
 
     private RequestPostProcessor cpfAutenticado() {
         return request -> {
-            request.setAttribute("authenticatedCpf", CPF);
+            request.setAttribute("authenticatedCpf", CPF_GESTOR);
             return request;
         };
     }

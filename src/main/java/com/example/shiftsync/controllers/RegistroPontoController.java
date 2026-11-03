@@ -16,8 +16,10 @@ import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
 import com.example.shiftsync.repository.FuncionarioRepository;
 import com.example.shiftsync.repository.RealizacaoTurnoRepository;
 import com.example.shiftsync.repository.RegistroPontoAuditoriaRepository;
+import com.example.shiftsync.repository.UsuarioRepository;
 import com.example.shiftsync.utils.CpfUtils;
 import com.example.shiftsync.utils.RegrasJornada;
+import com.example.shiftsync.entities.Usuario;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -45,9 +47,9 @@ import java.util.Optional;
 /**
  * Endpoints de consulta, marcação e apuração mensal do ponto.
  *
- * A identidade do funcionário é conferida com o CPF presente no JWT. Os horários
- * informados são associados à jornada selecionada, respeitam a sequência temporal
- * e são registrados também na tabela de auditoria.
+ * O CPF presente no JWT identifica o gestor; o CPF da requisição seleciona o
+ * funcionário afetado. Os horários respeitam a sequência da jornada e cada ação
+ * é registrada na tabela de auditoria com a identidade autenticada do gestor.
  */
 @RestController
 @RequestMapping("/ponto")
@@ -58,6 +60,7 @@ public class RegistroPontoController {
     private final AtribuicaoTurnoRepository atribuicaoTurnoRepository;
     private final RealizacaoTurnoRepository realizacaoTurnoRepository;
     private final RegistroPontoAuditoriaRepository auditoriaRepository;
+    private final UsuarioRepository usuarioRepository;
     private final Clock clock;
 
     /** Recebe os repositórios e o relógio usados pelo fluxo de ponto. */
@@ -66,25 +69,28 @@ public class RegistroPontoController {
             AtribuicaoTurnoRepository atribuicaoTurnoRepository,
             RealizacaoTurnoRepository realizacaoTurnoRepository,
             RegistroPontoAuditoriaRepository auditoriaRepository,
+            UsuarioRepository usuarioRepository,
             Clock clock) {
         this.funcionarioRepository = funcionarioRepository;
         this.atribuicaoTurnoRepository = atribuicaoTurnoRepository;
         this.realizacaoTurnoRepository = realizacaoTurnoRepository;
         this.auditoriaRepository = auditoriaRepository;
+        this.usuarioRepository = usuarioRepository;
         this.clock = clock;
     }
 
-    /** Identifica o titular do token sem expor outros dados cadastrais. */
+    /** Identifica o funcionário selecionado pelo gestor autenticado. */
     @GetMapping("/funcionario")
-    @Operation(summary = "Confirma o funcionário autenticado pelo CPF")
+    @Operation(summary = "Confirma o funcionário selecionado para registro de ponto")
     public ResponseEntity<FuncionarioIdentificacao> consultarFuncionario(
             @RequestParam String cpf, HttpServletRequest request) {
-        Funcionario funcionario = buscarFuncionarioAutenticado(cpf, request);
+        obterCpfGestorAutenticado(request);
+        Funcionario funcionario = buscarFuncionarioAtivo(cpf);
         return ResponseEntity.ok(
                 new FuncionarioIdentificacao(funcionario.getId(), funcionario.getNome()));
     }
 
-    /** Consulta as marcações de uma jornada do funcionário autenticado. */
+    /** Consulta as marcações de uma jornada do funcionário selecionado pelo gestor. */
     @GetMapping
     @Transactional(readOnly = true)
     @Operation(summary = "Consulta o registro de ponto de uma jornada")
@@ -92,7 +98,8 @@ public class RegistroPontoController {
             @RequestParam String cpf,
             @RequestParam LocalDate data,
             HttpServletRequest request) {
-        Funcionario funcionario = buscarFuncionarioAutenticado(cpf, request);
+        obterCpfGestorAutenticado(request);
+        Funcionario funcionario = buscarFuncionarioAtivo(cpf);
         OcorrenciaFuncionario ocorrencia = buscarOcorrencia(funcionario, data);
         RealizacaoTurno realizacao = realizacaoTurnoRepository
                 .findByAtribuicao_IdAndInicioPlanejado(
@@ -113,7 +120,8 @@ public class RegistroPontoController {
             @RequestParam LocalDate inicio,
             @RequestParam LocalDate fim,
             HttpServletRequest request) {
-        Funcionario funcionario = buscarFuncionarioAutenticado(cpf, request);
+        obterCpfGestorAutenticado(request);
+        Funcionario funcionario = buscarFuncionarioAtivo(cpf);
         if (fim.isBefore(inicio) || ChronoUnit.DAYS.between(inicio, fim) > 31) {
             throw requisicaoInvalida(
                     "Informe um período válido de até 32 dias corridos.");
@@ -168,14 +176,17 @@ public class RegistroPontoController {
             throw requisicaoInvalida(
                     "Informe o CPF, a data, o tipo e o horário da marcação.");
         }
-        Funcionario funcionario = buscarFuncionarioAutenticado(requestBody.getCpf(), request);
+        String cpfGestor = obterCpfGestorAutenticado(request);
+        Funcionario funcionario = buscarFuncionarioAtivo(requestBody.getCpf());
         Funcionario funcionarioBloqueado = funcionarioRepository
                 .findByIdForUpdate(funcionario.getId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Funcionário não encontrado."));
         validarFuncionarioAtivo(funcionarioBloqueado);
 
-        LocalDateTime agora = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES);
+        LocalDateTime agora = LocalDateTime.now(clock);
+        LocalDateTime registradoEm = agora.truncatedTo(ChronoUnit.MINUTES);
+        validarDataJornadaNaoFutura(requestBody.getData(), agora.toLocalDate());
         OcorrenciaFuncionario ocorrencia = buscarOcorrencia(
                 funcionarioBloqueado, requestBody.getData());
         List<IntervaloJornada> intervalosJornada =
@@ -184,10 +195,10 @@ public class RegistroPontoController {
             throw requisicaoInvalida(
                     "O registro com quatro marcações suporta jornadas com até um intervalo.");
         }
-        validarJanelaDeRegistro(requestBody.getData(), ocorrencia.ocorrencia(), agora);
         LocalDateTime horarioMarcacao = montarHorarioDaJornada(
                 requestBody.getData(), requestBody.getHorario(), ocorrencia.ocorrencia());
         validarHorarioNaJornada(horarioMarcacao, ocorrencia.ocorrencia());
+        validarHorarioMarcacaoNaoFuturo(horarioMarcacao, agora);
 
         RealizacaoTurno realizacao = realizacaoTurnoRepository
                 .findByAtribuicao_IdAndInicioPlanejado(
@@ -195,14 +206,14 @@ public class RegistroPontoController {
                 .orElseGet(() -> novaRealizacao(ocorrencia));
         validarProximaMarcacao(realizacao, requestBody.getMarcacao(), horarioMarcacao);
         aplicarMarcacao(realizacao, requestBody.getMarcacao(), horarioMarcacao);
-        realizacao.setConfirmadoEm(agora);
+        realizacao.setConfirmadoEm(registradoEm);
         RealizacaoTurno salva = realizacaoTurnoRepository.save(realizacao);
 
         RegistroPontoAuditoria auditoria = new RegistroPontoAuditoria();
         auditoria.setRealizacao(salva);
         auditoria.setMarcacao(requestBody.getMarcacao().name());
         auditoria.setRegistradoEm(agora);
-        auditoria.setRegistradoPorCpf(CpfUtils.normalizar(requestBody.getCpf()));
+        auditoria.setRegistradoPorCpf(cpfGestor);
         auditoriaRepository.save(auditoria);
 
         return ResponseEntity.ok(criarResposta(
@@ -221,7 +232,8 @@ public class RegistroPontoController {
             @RequestParam String cpf,
             @RequestParam String mes,
             HttpServletRequest request) {
-        Funcionario funcionario = buscarFuncionarioAutenticado(cpf, request);
+        obterCpfGestorAutenticado(request);
+        Funcionario funcionario = buscarFuncionarioAtivo(cpf);
         YearMonth referencia;
         try {
             referencia = YearMonth.parse(mes);
@@ -344,28 +356,29 @@ public class RegistroPontoController {
                 intervalosInsuficientes));
     }
 
-    /**
-     * Confere o CPF informado contra o assunto do JWT e localiza um único funcionário ativo.
-     *
-     * Rejeita CPF inválido, sessão sem identidade, tentativa de consultar outra pessoa,
-     * ausência do cadastro e duplicidade de CPF, usando códigos HTTP distintos.
-     */
-    private Funcionario buscarFuncionarioAutenticado(
-            String cpf, HttpServletRequest request) {
+    /** Obtém a identidade exclusivamente do JWT e exige uma conta de gestor ativa. */
+    private String obterCpfGestorAutenticado(HttpServletRequest request) {
+        Object cpfAutenticado = request.getAttribute("authenticatedCpf");
+        if (!(cpfAutenticado instanceof String cpfGestor) || cpfGestor.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "A sessão autenticada não identificou o gestor.");
+        }
+        Usuario gestor = usuarioRepository.findByCpf(cpfGestor).orElseThrow(() ->
+                new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "A conta autenticada não está disponível."));
+        if (!"A".equalsIgnoreCase(gestor.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "A conta do gestor não está ativa.");
+        }
+        return CpfUtils.normalizar(gestor.getCpf());
+    }
+
+    /** Valida o CPF do funcionário informado e localiza um único cadastro ativo. */
+    private Funcionario buscarFuncionarioAtivo(String cpf) {
         if (!CpfUtils.isValidCpf(cpf)) {
             throw requisicaoInvalida("Informe um CPF válido.");
         }
-        Object cpfAutenticado = request.getAttribute("authenticatedCpf");
         String cpfNormalizado = CpfUtils.normalizar(cpf);
-        if (!(cpfAutenticado instanceof String cpfDaSessao) || cpfDaSessao.isBlank()) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "A sessão autenticada não identificou o usuário.");
-        }
-        if (!cpfNormalizado.equals(CpfUtils.normalizar(cpfDaSessao))) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "O registro de ponto só pode ser consultado pelo próprio funcionário.");
-        }
         List<Funcionario> encontrados =
                 funcionarioRepository.findAllByCpfNormalizado(cpfNormalizado);
         if (encontrados.isEmpty()) {
@@ -382,7 +395,7 @@ public class RegistroPontoController {
         return funcionario;
     }
 
-    /** Exige status ativo antes de permitir consultas ou novas marcações do titular. */
+    /** Exige status ativo antes de permitir consultas ou novas marcações do funcionário. */
     private void validarFuncionarioAtivo(Funcionario funcionario) {
         if (!"A".equalsIgnoreCase(funcionario.getStatus())) {
             throw new ResponseStatusException(
@@ -431,18 +444,11 @@ public class RegistroPontoController {
                 || ocorrencia.inicio().isBefore(atribuicao.getVigenciaFim()));
     }
 
-    /** Restringe a marcação à jornada atual, incluindo pequena tolerância após seu término. */
-    private void validarJanelaDeRegistro(
-            LocalDate data, RegrasJornada.Ocorrencia ocorrencia, LocalDateTime agora) {
-        boolean dataAtual = data.equals(agora.toLocalDate());
-        boolean jornadaNoturnaEmCurso = data.equals(agora.toLocalDate().minusDays(1))
-                && ocorrencia.fim().toLocalDate().equals(agora.toLocalDate())
-                && agora.isBefore(ocorrencia.fim().plusHours(4));
-        if ((!dataAtual && !jornadaNoturnaEmCurso)
-                || agora.isBefore(ocorrencia.inicio().minusHours(12))
-                || agora.isAfter(ocorrencia.fim().plusHours(4))) {
+    /** Permite lançamento retroativo, mas nunca para uma data de jornada futura. */
+    private void validarDataJornadaNaoFutura(LocalDate data, LocalDate hoje) {
+        if (data.isAfter(hoje)) {
             throw requisicaoInvalida(
-                    "As marcações só podem ser feitas durante a jornada atual.");
+                    "Não é permitido registrar ponto para uma data futura.");
         }
     }
 
@@ -464,6 +470,14 @@ public class RegistroPontoController {
                 || horario.isAfter(ocorrencia.fim().plusHours(4))) {
             throw requisicaoInvalida(
                     "O horário informado não pertence à data e à jornada selecionadas.");
+        }
+    }
+
+    /** O horário do evento pode ser passado; o gestor não pode informar um instante futuro. */
+    private void validarHorarioMarcacaoNaoFuturo(
+            LocalDateTime horarioMarcacao, LocalDateTime agora) {
+        if (horarioMarcacao.isAfter(agora)) {
+            throw requisicaoInvalida("O horário da marcação não pode estar no futuro.");
         }
     }
 

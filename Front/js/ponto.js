@@ -97,7 +97,7 @@ function atualizarVisualizacaoPonto(registro) {
 }
 
 async function consultarPontoAtual(evento) {
-  // Primeiro identifica o titular e depois consulta a jornada da data escolhida.
+  // Identifica o funcionário selecionado; a API autoriza o gestor pelo JWT.
   evento.preventDefault();
   const dados = new FormData(formularioPonto);
   const cpf = String(dados.get("cpf") || "").trim();

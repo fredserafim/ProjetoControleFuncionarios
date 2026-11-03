@@ -110,7 +110,10 @@ class RegistroPontoPersistenceTest {
                 recuperada.getFimIntervaloReal());
         assertEquals(LocalDateTime.of(2026, 10, 27, 17, 10), recuperada.getFimReal());
         assertEquals(1, recuperada.getIntervalosNaoTrabalhados().size());
-        assertEquals(1, auditoriaRepository.findByRealizacao_Id(realizacaoId).size());
+        List<RegistroPontoAuditoria> auditorias =
+                auditoriaRepository.findByRealizacao_Id(realizacaoId);
+        assertEquals(1, auditorias.size());
+        assertEquals("52998224725", auditorias.get(0).getRegistradoPorCpf());
         assertEquals(1, funcionarioRepository.findAllByCpfNormalizado(cpfTeste).size());
     }
 }

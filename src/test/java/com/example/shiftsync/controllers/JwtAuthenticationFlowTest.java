@@ -1,6 +1,11 @@
 package com.example.shiftsync.controllers;
 
 import com.example.shiftsync.entities.Usuario;
+import com.example.shiftsync.entities.Funcionario;
+import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
+import com.example.shiftsync.repository.FuncionarioRepository;
+import com.example.shiftsync.repository.RealizacaoTurnoRepository;
+import com.example.shiftsync.repository.RegistroPontoAuditoriaRepository;
 import com.example.shiftsync.repository.UsuarioRepository;
 import com.example.shiftsync.config.JwtFilter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,6 +20,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
@@ -34,6 +43,7 @@ class JwtAuthenticationFlowTest {
 
     private static final String CPF_VALIDO = "52998224725";
     private static final String CPF_OUTRO_USUARIO = "11144477735";
+    private static final String CPF_FUNCIONARIO = "93541134780";
     private static final String SEGREDO_CURTO_DE_TESTE = "curto";
     private static final String EMISSOR = "teste";
     private static final String SENHA_USUARIO_A = "senha-a";
@@ -42,11 +52,19 @@ class JwtAuthenticationFlowTest {
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private UsuarioRepository usuarioRepository;
+    private FuncionarioRepository funcionarioRepository;
+    private AtribuicaoTurnoRepository atribuicaoTurnoRepository;
+    private RealizacaoTurnoRepository realizacaoTurnoRepository;
+    private RegistroPontoAuditoriaRepository auditoriaRepository;
     private BCryptPasswordEncoder passwordEncoder;
 
     @BeforeEach
     void configurar() {
         usuarioRepository = mock(UsuarioRepository.class);
+        funcionarioRepository = mock(FuncionarioRepository.class);
+        atribuicaoTurnoRepository = mock(AtribuicaoTurnoRepository.class);
+        realizacaoTurnoRepository = mock(RealizacaoTurnoRepository.class);
+        auditoriaRepository = mock(RegistroPontoAuditoriaRepository.class);
         passwordEncoder = new BCryptPasswordEncoder();
         Usuario usuarioA = usuario(1L, CPF_VALIDO, "Ana", SENHA_USUARIO_A);
         Usuario usuarioB = usuario(2L, CPF_OUTRO_USUARIO, "Bruno", SENHA_USUARIO_B);
@@ -54,6 +72,13 @@ class JwtAuthenticationFlowTest {
         when(usuarioRepository.findByCpf(CPF_OUTRO_USUARIO)).thenReturn(Optional.of(usuarioB));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuarioA));
         when(usuarioRepository.findById(2L)).thenReturn(Optional.of(usuarioB));
+        Funcionario funcionario = new Funcionario();
+        funcionario.setId(7L);
+        funcionario.setNome("Funcionária destinatária");
+        funcionario.setCpf(CPF_FUNCIONARIO);
+        funcionario.setStatus("A");
+        when(funcionarioRepository.findAllByCpfNormalizado(CPF_FUNCIONARIO))
+                .thenReturn(List.of(funcionario));
 
         LoginController loginController = new LoginController();
         ReflectionTestUtils.setField(loginController, "usuarioRepository", usuarioRepository);
@@ -71,7 +96,18 @@ class JwtAuthenticationFlowTest {
 
         objectMapper = new ObjectMapper();
         mockMvc = MockMvcBuilders.standaloneSetup(
-                        loginController, usuarioController, new RotaProtegidaDeTeste())
+                        loginController,
+                        usuarioController,
+                        new RotaProtegidaDeTeste(),
+                        new RegistroPontoController(
+                                funcionarioRepository,
+                                atribuicaoTurnoRepository,
+                                realizacaoTurnoRepository,
+                                auditoriaRepository,
+                                usuarioRepository,
+                                Clock.fixed(
+                                        Instant.parse("2026-11-04T12:00:00Z"),
+                                        ZoneId.of("America/Sao_Paulo"))))
                 .addFilters(jwtFilter)
                 .build();
     }
@@ -141,6 +177,18 @@ class JwtAuthenticationFlowTest {
     void perfilPessoalNaoPodeSerConsultadoSemToken() throws Exception {
         mockMvc.perform(get("/usuarios/me"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void gestorQueAutenticaComSeuCpfConsultaFuncionarioComCpfDiferente() throws Exception {
+        String tokenGestor = token(CPF_VALIDO, SENHA_USUARIO_A);
+
+        mockMvc.perform(get("/ponto/funcionario")
+                        .param("cpf", CPF_FUNCIONARIO)
+                        .header("Authorization", "Bearer " + tokenGestor))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.nome").value("Funcionária destinatária"));
     }
 
     private String token(String cpf, String senha) throws Exception {
