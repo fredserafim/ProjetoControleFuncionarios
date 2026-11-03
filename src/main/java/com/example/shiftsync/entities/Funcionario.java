@@ -33,6 +33,8 @@ public class Funcionario {
 
         private String telefone;
 
+        private String cep;
+
         private String endereco;
 
         private String turno;
@@ -84,6 +86,13 @@ public class Funcionario {
         }
         public void setTelefone(String telefone) {
                 this.telefone = telefone;
+        }
+
+        public String getCep() {
+                return cep;
+        }
+        public void setCep(String cep) {
+                this.cep = cep;
         }
 
         public String getEndereco() {

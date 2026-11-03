@@ -13,6 +13,8 @@ import com.example.shiftsync.repository.DepartamentoRepository;
 import com.example.shiftsync.repository.FuncionarioRepository;
 import com.example.shiftsync.repository.RealizacaoTurnoRepository;
 import com.example.shiftsync.repository.TurnoRopository;
+import com.example.shiftsync.utils.CepUtils;
+import com.example.shiftsync.utils.OnlyNumbers;
 import com.example.shiftsync.utils.RegrasJornada;
 import com.example.shiftsync.utils.CpfUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -71,6 +73,26 @@ public class FuncionarioController {
         return funcionarioRepository.findAll().stream()
                 .map(FuncionarioResponse::new)
                 .toList();
+    }
+
+    /** Consulta o ViaCEP pela utilitária existente sem expor falhas internas do serviço. */
+    @GetMapping("/consultar-cep")
+    public ResponseEntity<Map<String, String>> consultarCep(@RequestParam String cep) {
+        String endereco;
+        try {
+            endereco = CepUtils.buscarEndereco(cep);
+        } catch (IllegalArgumentException excecao) {
+            return ResponseEntity.badRequest().body(Map.of("mensagem", "CEP inválido."));
+        } catch (RuntimeException excecao) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+                    "mensagem",
+                    "Serviço de consulta de CEP indisponível. Tente novamente mais tarde."));
+        }
+        if (endereco == null || endereco.isBlank()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("mensagem", "CEP não encontrado."));
+        }
+        return ResponseEntity.ok(Map.of("endereco", endereco));
     }
 
     /** Busca um funcionário pelo id; retorna 404 quando não existe. */
@@ -278,7 +300,8 @@ public class FuncionarioController {
 
         funcionarioBanco.setNome(funcionarioRequest.getNome());
         funcionarioBanco.setCpf(funcionarioRequest.getCpf());
-        funcionarioBanco.setTelefone(funcionarioRequest.getTelefone());
+        funcionarioBanco.setTelefone(normalizarTelefone(funcionarioRequest.getTelefone()));
+        funcionarioBanco.setCep(funcionarioRequest.getCep());
         funcionarioBanco.setEndereco(funcionarioRequest.getEndereco());
         funcionarioBanco.setTurno(funcionarioRequest.getTurno());
         funcionarioBanco.setDepartamento(resolverDepartamento(funcionarioRequest));
@@ -311,7 +334,12 @@ public class FuncionarioController {
             if (funcionarioRequest.getCpf() != null) {
                 funcionarioBanco.setCpf(funcionarioRequest.getCpf());
             }
-            funcionarioBanco.setTelefone(funcionarioRequest.getTelefone());
+            if (funcionarioRequest.getTelefone() != null) {
+                funcionarioBanco.setTelefone(normalizarTelefone(funcionarioRequest.getTelefone()));
+            }
+            if (funcionarioRequest.getCep() != null) {
+                funcionarioBanco.setCep(funcionarioRequest.getCep());
+            }
             funcionarioBanco.setEndereco(funcionarioRequest.getEndereco());
             funcionarioBanco.setFuncao(funcionarioRequest.getFuncao());
             funcionarioBanco.setTurno(funcionarioRequest.getTurno());
@@ -330,6 +358,12 @@ public class FuncionarioController {
             return ResponseEntity.ok(new FuncionarioResponse(funcionarioAtualizado));
         })
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /** Normaliza o telefone com a utilitária compartilhada; valor ausente fica nulo. */
+    private String normalizarTelefone(String telefone) {
+        String numeros = OnlyNumbers.onlyNumbers(telefone);
+        return numeros.isEmpty() ? null : numeros;
     }
 
     private Turno buscarJornadaAtiva(Long turnoId) {

@@ -111,7 +111,11 @@ const dialogoFuncionario = document.querySelector("[data-employee-dialog]");
 const formularioFuncionario = document.querySelector("[data-employee-form]");
 const statusFormularioFuncionario = document.querySelector("[data-employee-form-status]");
 const botaoSalvarFuncionario = document.querySelector("[data-employee-submit]");
+const campoCepFuncionario = document.querySelector("#funcionario-cep");
+const statusCepFuncionario = document.querySelector("[data-employee-cep-status]");
 let funcionarioEmEdicao = null;
+let cepConsultadoFuncionario = "";
+let requisicaoCepFuncionario = 0;
 
 const dialogoTurno = document.querySelector("[data-shift-dialog]");
 const formularioTurno = document.querySelector("[data-shift-form]");
@@ -885,6 +889,10 @@ async function abrirFormularioFuncionario(funcionario = null) {
   // Carrega as opções da API antes de preencher os dados da pessoa no diálogo.
   funcionarioEmEdicao = funcionario;
   formularioFuncionario.reset();
+  cepConsultadoFuncionario = "";
+  requisicaoCepFuncionario++;
+  statusCepFuncionario.textContent = "";
+  statusCepFuncionario.classList.remove("erro");
   statusFormularioFuncionario.textContent = "";
   statusFormularioFuncionario.classList.remove("erro");
 
@@ -905,6 +913,8 @@ async function abrirFormularioFuncionario(funcionario = null) {
     campoCpf.value = funcionario?.cpf || "";
     campoCpf.readOnly = false;
     document.querySelector("#funcionario-telefone").value = funcionario?.telefone || "";
+    campoCepFuncionario.value = formatarCepFuncionario(funcionario?.cep || "");
+    cepConsultadoFuncionario = somenteDigitosCepFuncionario(campoCepFuncionario.value);
     document.querySelector("#funcionario-endereco").value = funcionario?.endereco || "";
     document.querySelector("#funcionario-funcao").value = funcionario?.funcao || "";
     const selectTurno = document.querySelector("#funcionario-turno");
@@ -934,6 +944,63 @@ async function abrirFormularioFuncionario(funcionario = null) {
   }
 }
 
+function somenteDigitosCepFuncionario(valor) {
+  return String(valor || "").replace(/\D/g, "").slice(0, 8);
+}
+
+function formatarCepFuncionario(valor) {
+  const digitos = somenteDigitosCepFuncionario(valor);
+  return digitos.length > 5
+    ? `${digitos.slice(0, 5)}-${digitos.slice(5)}`
+    : digitos;
+}
+
+async function consultarCepFuncionario() {
+  const digitos = somenteDigitosCepFuncionario(campoCepFuncionario.value);
+  campoCepFuncionario.value = formatarCepFuncionario(digitos);
+  if (digitos.length === 8 && digitos === cepConsultadoFuncionario) {
+    return;
+  }
+  const requisicaoAtual = ++requisicaoCepFuncionario;
+  statusCepFuncionario.classList.remove("erro");
+
+  if (digitos.length < 8) {
+    statusCepFuncionario.textContent = digitos
+      ? "Informe os 8 dígitos do CEP para consultar."
+      : "";
+    return;
+  }
+  cepConsultadoFuncionario = digitos;
+  const campoEndereco = document.querySelector("#funcionario-endereco");
+  const enderecoAntesDaConsulta = campoEndereco.value;
+  statusCepFuncionario.textContent = "Consultando CEP...";
+  try {
+    const resultado = await api.consultarCep(digitos);
+    // Impede uma resposta atrasada de um CEP anterior de sobrescrever o formulário atual.
+    if (requisicaoAtual !== requisicaoCepFuncionario) {
+      return;
+    }
+    if (!resultado?.endereco) {
+      throw new Error("O serviço não retornou um endereço para este CEP.");
+    }
+    if (campoEndereco.value === enderecoAntesDaConsulta) {
+      campoEndereco.value = resultado.endereco;
+    }
+    statusCepFuncionario.textContent = "Endereço consultado. Você pode editá-lo manualmente.";
+  } catch (erro) {
+    if (requisicaoAtual !== requisicaoCepFuncionario) {
+      return;
+    }
+    cepConsultadoFuncionario = "";
+    statusCepFuncionario.classList.add("erro");
+    statusCepFuncionario.textContent = erro.status === 404
+      ? "CEP não encontrado."
+      : erro.status === 503
+      ? "Serviço ViaCEP indisponível. Preencha o endereço manualmente ou tente novamente."
+      : `Não foi possível consultar o CEP. ${erro.message}`;
+  }
+}
+
 async function salvarFuncionario(evento) {
   // Converte os valores do formulário em DTO, envia o cadastro/edição e atualiza a lista.
   evento.preventDefault();
@@ -954,6 +1021,7 @@ async function salvarFuncionario(evento) {
     nome: dadosFormulario.get("nome").trim(),
     cpf: dadosFormulario.get("cpf").trim(),
     telefone: dadosFormulario.get("telefone").trim(),
+    cep: somenteDigitosCepFuncionario(dadosFormulario.get("cep")),
     endereco: dadosFormulario.get("endereco").trim(),
     funcao: dadosFormulario.get("funcao").trim(),
     turno: turnoLegado,
@@ -1217,6 +1285,9 @@ document.querySelector('[data-list="departamentos"]').addEventListener("click", 
 });
 
 formularioFuncionario.addEventListener("submit", salvarFuncionario);
+campoCepFuncionario.addEventListener("input", () => {
+  void consultarCepFuncionario();
+});
 formularioTurno.addEventListener("submit", salvarTurno);
 formularioDepartamento.addEventListener("submit", salvarDepartamento);
 

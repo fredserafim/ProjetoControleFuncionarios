@@ -187,6 +187,10 @@ const api = {
     return this.get(`/funcionario/${encodeURIComponent(id)}`);
   },
 
+  consultarCep(cep) {
+    return this.get(`/funcionario/consultar-cep?cep=${encodeURIComponent(cep)}`);
+  },
+
   cadastrarFuncionario(funcionario) {
     return this.post("/funcionario", funcionario);
   },

@@ -58,6 +58,8 @@ class RegistroPontoPersistenceTest {
         Funcionario funcionario = new Funcionario();
         funcionario.setNome("Funcionário de teste de ponto");
         funcionario.setCpf(cpfTeste);
+        funcionario.setTelefone("48999991234");
+        funcionario.setCep("88801000");
         funcionario.setStatus("A");
         funcionarioRepository.saveAndFlush(funcionario);
 
@@ -97,6 +99,10 @@ class RegistroPontoPersistenceTest {
 
         RealizacaoTurno recuperada = realizacaoTurnoRepository.findById(realizacaoId)
                 .orElseThrow();
+        Funcionario funcionarioRecuperado =
+                funcionarioRepository.findAllByCpfNormalizado(cpfTeste).get(0);
+        assertEquals("48999991234", funcionarioRecuperado.getTelefone());
+        assertEquals("88801000", funcionarioRecuperado.getCep());
         assertEquals(LocalDateTime.of(2026, 10, 27, 8, 5), recuperada.getInicioReal());
         assertEquals(LocalDateTime.of(2026, 10, 27, 12, 0),
                 recuperada.getInicioIntervaloReal());

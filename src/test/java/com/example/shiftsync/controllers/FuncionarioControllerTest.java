@@ -8,11 +8,14 @@ import com.example.shiftsync.repository.AtribuicaoTurnoRepository;
 import com.example.shiftsync.repository.DepartamentoRepository;
 import com.example.shiftsync.repository.FuncionarioRepository;
 import com.example.shiftsync.repository.TurnoRopository;
+import com.example.shiftsync.utils.CepUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -72,6 +75,7 @@ class FuncionarioControllerTest {
     @Test
     void consultaFuncionariosPorIdEDepartamento() throws Exception {
         Funcionario funcionario = funcionario(7L, departamento(3L, "Financeiro"));
+        funcionario.setCep("88801000");
         when(funcionarioRepository.findAll()).thenReturn(List.of(funcionario));
         when(funcionarioRepository.findById(7L)).thenReturn(Optional.of(funcionario));
         when(funcionarioRepository.findByDepartamento_Id(3L)).thenReturn(List.of(funcionario));
@@ -79,15 +83,53 @@ class FuncionarioControllerTest {
         mockMvc.perform(get("/funcionario"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(7))
-                .andExpect(jsonPath("$[0].departamentoId").value(3));
+                .andExpect(jsonPath("$[0].departamentoId").value(3))
+                .andExpect(jsonPath("$[0].cep").value("88801000"));
 
         mockMvc.perform(get("/funcionario/7"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nome").value("Ana Silva"));
+                .andExpect(jsonPath("$.nome").value("Ana Silva"))
+                .andExpect(jsonPath("$.cep").value("88801000"));
 
         mockMvc.perform(get("/funcionario/3/departamento"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].departamento").value("Financeiro"));
+    }
+
+    @Test
+    void consultaCepValidoComPontuacao() throws Exception {
+        try (MockedStatic<CepUtils> cepUtils = Mockito.mockStatic(CepUtils.class)) {
+            cepUtils.when(() -> CepUtils.buscarEndereco("88801-000"))
+                    .thenReturn("Rua Exemplo, Centro - Criciúma/SC");
+
+            mockMvc.perform(get("/funcionario/consultar-cep").param("cep", "88801-000"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.endereco")
+                            .value("Rua Exemplo, Centro - Criciúma/SC"));
+
+            cepUtils.verify(() -> CepUtils.buscarEndereco("88801-000"));
+        }
+    }
+
+    @Test
+    void trataCepInvalidoInexistenteEIndisponibilidadeDoServico() throws Exception {
+        mockMvc.perform(get("/funcionario/consultar-cep").param("cep", "123"))
+                .andExpect(status().isBadRequest());
+
+        try (MockedStatic<CepUtils> cepUtils = Mockito.mockStatic(CepUtils.class)) {
+            cepUtils.when(() -> CepUtils.buscarEndereco("00000000")).thenReturn(null);
+            cepUtils.when(() -> CepUtils.buscarEndereco("88801000"))
+                    .thenThrow(new RuntimeException("detalhe interno"));
+
+            mockMvc.perform(get("/funcionario/consultar-cep").param("cep", "00000000"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.mensagem").value("CEP não encontrado."));
+
+            mockMvc.perform(get("/funcionario/consultar-cep").param("cep", "88801000"))
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(jsonPath("$.mensagem")
+                            .value("Serviço de consulta de CEP indisponível. Tente novamente mais tarde."));
+        }
     }
 
     @Test
@@ -114,6 +156,40 @@ class FuncionarioControllerTest {
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.nome").value("Ana Silva"))
                 .andExpect(jsonPath("$.departamentoId").value(3));
+    }
+
+    @Test
+    void normalizaTelefoneECadastraCepEEnderecoDoFuncionario() throws Exception {
+        when(departamentoRepository.findById(3L))
+                .thenReturn(Optional.of(departamento(3L, "Financeiro")));
+        when(funcionarioRepository.save(any(Funcionario.class))).thenAnswer(invocacao -> {
+            Funcionario funcionario = invocacao.getArgument(0);
+            funcionario.setId(7L);
+            return funcionario;
+        });
+
+        mockMvc.perform(post("/funcionario")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nome": "Ana Silva",
+                                  "cpf": "12345678900",
+                                  "telefone": "(48) 99999-1234",
+                                  "cep": "88801000",
+                                  "endereco": "Rua Exemplo, Centro - Criciúma/SC",
+                                  "departamentoId": 3
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.telefone").value("48999991234"))
+                .andExpect(jsonPath("$.cep").value("88801000"))
+                .andExpect(jsonPath("$.endereco").value("Rua Exemplo, Centro - Criciúma/SC"));
+
+        org.mockito.ArgumentCaptor<Funcionario> captor =
+                org.mockito.ArgumentCaptor.forClass(Funcionario.class);
+        verify(funcionarioRepository).save(captor.capture());
+        org.junit.jupiter.api.Assertions.assertEquals("48999991234", captor.getValue().getTelefone());
+        org.junit.jupiter.api.Assertions.assertEquals("88801000", captor.getValue().getCep());
     }
 
     @Test
@@ -295,8 +371,9 @@ class FuncionarioControllerTest {
                                 {
                                   "nome": "Ana Souza",
                                   "cpf": "98765432100",
-                                  "telefone": "11888880000",
-                                  "endereco": "Rua Um",
+                                  "telefone": "(48) 99999-1234",
+                                  "cep": "88801-000",
+                                  "endereco": "Rua Atualizada",
                                   "funcao": "Analista",
                                   "turno": "Manhã",
                                   "departamentoId": 3
@@ -304,7 +381,15 @@ class FuncionarioControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome").value("Ana Souza"))
-                .andExpect(jsonPath("$.cpf").value("98765432100"));
+                .andExpect(jsonPath("$.cpf").value("98765432100"))
+                .andExpect(jsonPath("$.telefone").value("48999991234"))
+                .andExpect(jsonPath("$.cep").value("88801-000"))
+                .andExpect(jsonPath("$.endereco").value("Rua Atualizada"));
+
+        verify(funcionarioRepository).save(org.mockito.ArgumentMatchers.argThat(atualizado ->
+                "48999991234".equals(atualizado.getTelefone())
+                        && "88801-000".equals(atualizado.getCep())
+                        && "Rua Atualizada".equals(atualizado.getEndereco())));
     }
 
     @Test

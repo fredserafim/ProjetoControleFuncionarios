@@ -150,7 +150,7 @@ class RegistroPontoControllerTest {
                 .andExpect(jsonPath("$.saidaIntervalo").value("2026-10-27T12:00:00"))
                 .andExpect(jsonPath("$.retornoIntervalo").value("2026-10-27T13:30:00"))
                 .andExpect(jsonPath("$.saidaFinal").value("2026-10-27T18:00:00"))
-                .andExpect(jsonPath("$.minutosTrabalhados").value(450));
+                .andExpect(jsonPath("$.minutosTrabalhados").value(510));
 
         assertEquals(LocalDateTime.of(2026, 10, 27, 8, 0), persistido.get().getInicioReal());
         assertEquals(LocalDateTime.of(2026, 10, 27, 12, 0),
@@ -159,7 +159,7 @@ class RegistroPontoControllerTest {
                 persistido.get().getFimIntervaloReal());
         assertEquals(LocalDateTime.of(2026, 10, 27, 18, 0), persistido.get().getFimReal());
         assertEquals(1, persistido.get().getIntervalosNaoTrabalhados().size());
-        assertEquals(450, minutosTrabalhados(persistido.get()));
+        assertEquals(510, minutosTrabalhados(persistido.get()));
         verify(realizacaoTurnoRepository, org.mockito.Mockito.times(4))
                 .save(any(RealizacaoTurno.class));
         verify(auditoriaRepository, org.mockito.Mockito.times(4))
@@ -168,7 +168,7 @@ class RegistroPontoControllerTest {
 
     @Test
     void bloqueiaMarcacaoForaDaSequenciaEduplicada() throws Exception {
-        postarMarcacao("RETORNO_INTERVALO")
+        postarMarcacao("RETORNO_INTERVALO", "13:30")
                 .andExpect(status().isBadRequest());
         assertNull(persistido.get());
 

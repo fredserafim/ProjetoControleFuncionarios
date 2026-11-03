@@ -36,6 +36,8 @@ public class FuncionarioRequest {
 
     private String telefone;
 
+    private String cep;
+
     private String endereco;
 
     private Long departamentoId;
@@ -83,6 +85,14 @@ public class FuncionarioRequest {
 
     public void setTelefone(String telefone) {
         this.telefone = telefone;
+    }
+
+    public String getCep() {
+        return cep;
+    }
+
+    public void setCep(String cep) {
+        this.cep = cep;
     }
 
     public String getEndereco() {

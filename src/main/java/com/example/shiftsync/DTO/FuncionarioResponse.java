@@ -36,6 +36,7 @@ public class FuncionarioResponse {
     private String mensagem;
     private String cpf;
     private String telefone;
+    private String cep;
     private String endereco;
     private String nome;
     private String funcao;
@@ -76,6 +77,14 @@ public class FuncionarioResponse {
         this.telefone = telefone;
     }
 
+    public String getCep() {
+        return cep;
+    }
+
+    public void setCep(String cep) {
+        this.cep = cep;
+    }
+
     public String getEndereco() {
         return endereco;
     }
@@ -88,6 +97,7 @@ public class FuncionarioResponse {
         this.nome = funcionario.getNome();
         this.cpf = funcionario.getCpf();
         this.telefone = funcionario.getTelefone();
+        this.cep = funcionario.getCep();
         this.endereco = funcionario.getEndereco();
         this.funcao = funcionario.getFuncao();
         this.turno = funcionario.getTurno();
