@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 /**
  * Dados que o frontend pode enviar para cadastrar ou editar um funcionário.
  *
- * O turnoId e turnoVigenciaInicio são usados para criar a atribuição histórica;
+ * O turnoId e turnoVigenciaInicio (normalizado pelo controller para o início
+ * do dia selecionado) são usados para criar ou atualizar a atribuição histórica;
  * os campos de departamento aceitam tanto o identificador quanto o formato
  * legado pelo nome, conforme o controller.
  */

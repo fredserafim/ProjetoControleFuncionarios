@@ -153,11 +153,14 @@ class RegistroPontoControllerTest {
                 realizacaoTurnoRepository,
                 auditoriaRepository,
                 usuarioRepository,
-                clock)).build();
+                clock))
+                .setControllerAdvice(new ApiExceptionHandler())
+                .build();
     }
 
     @Test
     void gravaQuatroMarcacoesEConsultaRegistroPersistido() throws Exception {
+        clock.definir(LocalDateTime.of(2026, 11, 3, 20, 0));
         registrar("ENTRADA", "08:00", "EM_ANDAMENTO");
         registrar("SAIDA_INTERVALO", "12:00", "EM_ANDAMENTO");
         registrar("RETORNO_INTERVALO", "13:30", "EM_ANDAMENTO");
@@ -189,8 +192,46 @@ class RegistroPontoControllerTest {
         verify(auditoriaRepository, org.mockito.Mockito.times(4)).save(auditorias.capture());
         auditorias.getAllValues().forEach(auditoria -> {
             assertEquals(CPF_GESTOR, auditoria.getRegistradoPorCpf());
-            assertEquals(LocalDateTime.of(2026, 11, 4, 20, 0), auditoria.getRegistradoEm());
+            assertEquals(LocalDateTime.of(2026, 11, 3, 20, 0), auditoria.getRegistradoEm());
         });
+    }
+
+    @Test
+    void encontraJornadaVigenteDesdeMeiaNoiteMesmoComCadastroAs20h() throws Exception {
+        clock.definir(LocalDateTime.of(2026, 11, 3, 20, 0));
+
+        mockMvc.perform(get("/ponto")
+                        .param("cpf", CPF_FUNCIONARIO)
+                        .param("data", DATA.toString())
+                        .with(cpfAutenticado()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nomeFuncionario").value("Ana Silva"));
+
+        registrar("ENTRADA", "08:00", "EM_ANDAMENTO");
+        assertEquals(LocalDateTime.of(2026, 11, 3, 8, 0), persistido.get().getInicioReal());
+    }
+
+    @Test
+    void retornaMensagemPadronizadaQuandoNaoHaJornadaNaData() throws Exception {
+        mockMvc.perform(get("/ponto")
+                        .param("cpf", CPF_FUNCIONARIO)
+                        .param("data", DATA.minusDays(1).toString())
+                        .with(cpfAutenticado()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message")
+                        .value("Não há jornada prevista para esta data."));
+
+        when(atribuicaoTurnoRepository
+                .findByFuncionario_IdOrderByVigenciaInicioAsc(7L))
+                .thenReturn(List.of());
+        mockMvc.perform(get("/ponto")
+                        .param("cpf", CPF_FUNCIONARIO)
+                        .param("data", DATA.toString())
+                        .with(cpfAutenticado()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message")
+                        .value("O funcionário não possui jornada atribuída."));
     }
 
     @Test

@@ -413,8 +413,13 @@ public class RegistroPontoController {
         LocalDateTime inicioBusca = data.minusDays(1).atStartOfDay();
         LocalDateTime fimBusca = data.plusDays(2).atStartOfDay();
         List<OcorrenciaFuncionario> ocorrencias = new ArrayList<>();
-        for (AtribuicaoTurno atribuicao : atribuicaoTurnoRepository
-                .findByFuncionario_IdOrderByVigenciaInicioAsc(funcionario.getId())) {
+        List<AtribuicaoTurno> atribuicoes = atribuicaoTurnoRepository
+                .findByFuncionario_IdOrderByVigenciaInicioAsc(funcionario.getId());
+        if (atribuicoes.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "O funcionário não possui jornada atribuída.");
+        }
+        for (AtribuicaoTurno atribuicao : atribuicoes) {
             Turno turno = atribuicao.getTurno();
             if (!RegrasJornada.possuiConfiguracaoJornada(turno)) {
                 continue;
@@ -441,7 +446,7 @@ public class RegistroPontoController {
             AtribuicaoTurno atribuicao, RegrasJornada.Ocorrencia ocorrencia) {
         return !ocorrencia.inicio().isBefore(atribuicao.getVigenciaInicio())
                 && (atribuicao.getVigenciaFim() == null
-                || ocorrencia.inicio().isBefore(atribuicao.getVigenciaFim()));
+                || !ocorrencia.fim().isAfter(atribuicao.getVigenciaFim()));
     }
 
     /** Permite lançamento retroativo, mas nunca para uma data de jornada futura. */

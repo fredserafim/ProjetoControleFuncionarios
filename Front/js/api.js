@@ -60,7 +60,7 @@ async function requisicao(caminho, opcoes = {}) {
   if (!resposta.ok) {
     const mensagem = typeof dados === "string"
       ? dados
-      : dados?.mensagem || dados?.message || dados?.detail;
+      : dados?.message || dados?.mensagem || dados?.detail;
     const mensagemExibida =
       mensagem || ({
         400: "Os dados enviados são inválidos. Confira os campos e tente novamente.",

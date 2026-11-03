@@ -45,7 +45,7 @@ function atualizarCampoVigenciaTurno(preencherData = true) {
   campoVigencia.required = jornadaSelecionada;
   document.querySelector("[data-shift-effective-field]").hidden = !jornadaSelecionada;
   if (jornadaSelecionada && preencherData && !campoVigencia.value) {
-    campoVigencia.value = formatarDataHoraLocal();
+    campoVigencia.value = formatarDataHoraLocal().slice(0, 10);
   }
 }
 
@@ -923,8 +923,8 @@ async function abrirFormularioFuncionario(funcionario = null) {
       : funcionario?.turno ? `legacy:${funcionario.turno}` : "";
     document.querySelector("#funcionario-turno-vigencia").value =
       funcionario?.turnoVigenciaInicio
-        ? funcionario.turnoVigenciaInicio.slice(0, 16)
-        : formatarDataHoraLocal();
+        ? funcionario.turnoVigenciaInicio.slice(0, 10)
+        : formatarDataHoraLocal().slice(0, 10);
     atualizarCampoVigenciaTurno(false);
     const selectDepartamento = document.querySelector("#departamento");
     const departamentoAtual = [...selectDepartamento.options].find((opcao) =>
@@ -1027,7 +1027,7 @@ async function salvarFuncionario(evento) {
     turno: turnoLegado,
     turnoId,
     turnoVigenciaInicio: turnoId
-      ? dadosFormulario.get("turnoVigenciaInicio")
+      ? `${dadosFormulario.get("turnoVigenciaInicio")}T00:00:00`
       : null,
     departamentoId: Number(dadosFormulario.get("departamento"))
   };
