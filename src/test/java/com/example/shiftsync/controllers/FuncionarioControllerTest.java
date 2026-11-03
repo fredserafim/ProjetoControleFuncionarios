@@ -76,6 +76,8 @@ class FuncionarioControllerTest {
     void configurarMockMvc() {
         lenient().when(realizacaoTurnoRepository.findByAtribuicao_Funcionario_Id(any()))
                 .thenReturn(List.of());
+        lenient().when(realizacaoTurnoRepository.findByAtribuicao_Id(any()))
+                .thenReturn(List.of());
         mockMvc = MockMvcBuilders.standaloneSetup(funcionarioController)
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
@@ -231,13 +233,13 @@ class FuncionarioControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.turnoId").value(11))
                 .andExpect(jsonPath("$.turno").value("Jornada diurna"))
-                .andExpect(jsonPath("$.turnoVigenciaInicio").value("2026-10-26T00:00:00"));
+                .andExpect(jsonPath("$.turnoVigenciaInicio").value("2026-10-26T08:30:00"));
 
         verify(atribuicaoTurnoRepository).save(any());
     }
 
     @Test
-    void atualizaInicioDaVigenciaQuandoJornadaPermaneceSelecionada() throws Exception {
+    void atualizaVigenciaExataQuandoJornadaPermaneceSelecionadaESemRealizacao() throws Exception {
         Turno turno = turno(11L);
         Funcionario funcionario = funcionario(7L, departamento(3L, "Financeiro"));
         funcionario.setJornada(turno);
@@ -266,12 +268,103 @@ class FuncionarioControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.turnoId").value(11))
                 .andExpect(jsonPath("$.turnoVigenciaInicio")
-                        .value("2026-10-27T00:00:00"));
+                        .value("2026-10-27T20:00:00"));
 
         verify(atribuicaoTurnoRepository).save(atribuicaoAtual);
         org.junit.jupiter.api.Assertions.assertEquals(
-                LocalDateTime.of(2026, 10, 27, 0, 0),
+                LocalDateTime.of(2026, 10, 27, 20, 0),
                 atribuicaoAtual.getVigenciaInicio());
+    }
+
+    @Test
+    void trocaTurnoDiretamenteNaAtribuicaoSemRealizacoes() throws Exception {
+        Turno turnoAtual = turno(11L);
+        Turno turnoNoturno = turnoSemanal(
+                12L, "Jornada noturna", LocalTime.of(22, 0), LocalTime.of(6, 0));
+        Funcionario funcionario = funcionario(7L, departamento(3L, "Financeiro"));
+        funcionario.setJornada(turnoAtual);
+        funcionario.setJornadaVigenciaInicio(LocalDateTime.of(2026, 10, 26, 8, 0));
+        AtribuicaoTurno atribuicaoAtual = atribuicao(
+                1L, funcionario, turnoAtual, LocalDateTime.of(2026, 10, 26, 8, 0), null);
+        when(funcionarioRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(funcionario));
+        when(funcionarioRepository.save(any(Funcionario.class)))
+                .thenAnswer(invocacao -> invocacao.getArgument(0));
+        when(turnoRepository.findByIdForUpdate(12L)).thenReturn(Optional.of(turnoNoturno));
+        when(atribuicaoTurnoRepository
+                .findFirstByFuncionario_IdAndVigenciaFimIsNullOrderByVigenciaInicioDesc(7L))
+                .thenReturn(Optional.of(atribuicaoAtual));
+        when(atribuicaoTurnoRepository.findByFuncionario_IdOrderByVigenciaInicioAsc(7L))
+                .thenReturn(List.of(atribuicaoAtual));
+
+        mockMvc.perform(put("/funcionario/7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "turnoId": 12,
+                          "turnoVigenciaInicio": "2026-10-27T20:00:00"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turnoId").value(12))
+                .andExpect(jsonPath("$.turno").value("Jornada noturna"))
+                .andExpect(jsonPath("$.turnoVigenciaInicio").value("2026-10-27T20:00:00"));
+
+        verify(atribuicaoTurnoRepository).save(atribuicaoAtual);
+        org.junit.jupiter.api.Assertions.assertEquals(turnoNoturno, atribuicaoAtual.getTurno());
+        org.junit.jupiter.api.Assertions.assertNull(atribuicaoAtual.getVigenciaFim());
+        org.junit.jupiter.api.Assertions.assertEquals(turnoNoturno, funcionario.getJornada());
+        org.junit.jupiter.api.Assertions.assertEquals("Jornada noturna", funcionario.getTurno());
+    }
+
+    @Test
+    void criaNovaAtribuicaoSemDesvincularRealizacoesDaAnterior() throws Exception {
+        Turno turnoAtual = turno(11L);
+        Turno turnoNovo = turnoSemanal(
+                12L, "Jornada noturna", LocalTime.of(22, 0), LocalTime.of(6, 0));
+        Funcionario funcionario = funcionario(7L, departamento(3L, "Financeiro"));
+        funcionario.setJornada(turnoAtual);
+        AtribuicaoTurno atribuicaoAtual = atribuicao(
+                1L, funcionario, turnoAtual, LocalDateTime.of(2026, 10, 26, 0, 0), null);
+        com.example.shiftsync.entities.RealizacaoTurno realizacao =
+                new com.example.shiftsync.entities.RealizacaoTurno();
+        realizacao.setAtribuicao(atribuicaoAtual);
+        realizacao.setInicioPlanejado(LocalDateTime.of(2026, 10, 26, 8, 0));
+        realizacao.setFimPlanejado(LocalDateTime.of(2026, 10, 26, 17, 0));
+        when(funcionarioRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(funcionario));
+        when(funcionarioRepository.save(any(Funcionario.class)))
+                .thenAnswer(invocacao -> invocacao.getArgument(0));
+        when(turnoRepository.findByIdForUpdate(12L)).thenReturn(Optional.of(turnoNovo));
+        when(atribuicaoTurnoRepository
+                .findFirstByFuncionario_IdAndVigenciaFimIsNullOrderByVigenciaInicioDesc(7L))
+                .thenReturn(Optional.of(atribuicaoAtual));
+        when(atribuicaoTurnoRepository.findByFuncionario_IdOrderByVigenciaInicioAsc(7L))
+                .thenReturn(List.of(atribuicaoAtual));
+        when(realizacaoTurnoRepository.findByAtribuicao_Id(1L))
+                .thenReturn(List.of(realizacao));
+
+        mockMvc.perform(put("/funcionario/7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "turnoId": 12,
+                                  "turnoVigenciaInicio": "2026-10-27T20:00:00"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turnoId").value(12))
+                .andExpect(jsonPath("$.turnoVigenciaInicio").value("2026-10-27T20:00:00"));
+
+        org.mockito.ArgumentCaptor<AtribuicaoTurno> atribuicoes =
+                org.mockito.ArgumentCaptor.forClass(AtribuicaoTurno.class);
+        verify(atribuicaoTurnoRepository, org.mockito.Mockito.times(2)).save(atribuicoes.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                LocalDateTime.of(2026, 10, 27, 20, 0), atribuicaoAtual.getVigenciaFim());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                atribuicaoAtual, realizacao.getAtribuicao());
+        AtribuicaoTurno nova = atribuicoes.getAllValues().get(1);
+        org.junit.jupiter.api.Assertions.assertEquals(turnoNovo, nova.getTurno());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                LocalDateTime.of(2026, 10, 27, 20, 0), nova.getVigenciaInicio());
     }
 
     @Test
@@ -293,7 +386,7 @@ class FuncionarioControllerTest {
                 .thenReturn(Optional.of(atribuicaoAtual));
         when(atribuicaoTurnoRepository.findByFuncionario_IdOrderByVigenciaInicioAsc(7L))
                 .thenReturn(List.of(atribuicaoAtual));
-        when(realizacaoTurnoRepository.findByAtribuicao_Funcionario_Id(7L))
+        when(realizacaoTurnoRepository.findByAtribuicao_Id(1L))
                 .thenReturn(List.of(realizacao));
 
         mockMvc.perform(put("/funcionario/7")
@@ -301,13 +394,10 @@ class FuncionarioControllerTest {
                         .content("""
                                 {
                                   "turnoId": 11,
-                                  "turnoVigenciaInicio": "2026-10-28T00:00:00"
+                                  "turnoVigenciaInicio": "2026-10-27T08:00:00"
                                 }
                                 """))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value(
-                        "A vigência não pode ser alterada porque há registros de ponto "
-                                + "que ficariam fora desta atribuição."));
+                .andExpect(status().isConflict());
 
         verify(atribuicaoTurnoRepository, never()).save(any(AtribuicaoTurno.class));
         verify(funcionarioRepository, never()).save(any(Funcionario.class));

@@ -1,6 +1,9 @@
 // Controla os formulários administrativos, listas do painel e dados de referência.
 const nomesTurnos = new Map();
 const nomesDepartamentos = new Map();
+let turnoOriginalNoFormulario = "";
+let vigenciaOriginalNoFormulario = "";
+let turnoAnteriorNoFormulario = "";
 const diasSemanaNomes = new Map([
   ["MONDAY", "Segunda-feira"],
   ["TUESDAY", "Terça-feira"],
@@ -38,15 +41,32 @@ function formatarDataHoraLocal(valor = new Date()) {
 }
 
 function atualizarCampoVigenciaTurno(preencherData = true) {
-  // Exige a data de início apenas quando o formulário seleciona um turno configurado.
+  // Mantém a vigência original ao voltar ao turno inicial e sugere agora na troca.
   const selectTurno = document.querySelector("#funcionario-turno");
   const campoVigencia = document.querySelector("#funcionario-turno-vigencia");
   const jornadaSelecionada = /^\d+$/.test(selectTurno.value);
   campoVigencia.required = jornadaSelecionada;
   document.querySelector("[data-shift-effective-field]").hidden = !jornadaSelecionada;
-  if (jornadaSelecionada && preencherData && !campoVigencia.value) {
-    campoVigencia.value = formatarDataHoraLocal().slice(0, 10);
+  if (!preencherData) {
+    turnoAnteriorNoFormulario = selectTurno.value;
+    return;
   }
+  if (!jornadaSelecionada) {
+    turnoAnteriorNoFormulario = selectTurno.value;
+    return;
+  }
+  if (funcionarioEmEdicao) {
+    if (selectTurno.value === turnoOriginalNoFormulario
+        && turnoAnteriorNoFormulario !== turnoOriginalNoFormulario) {
+      campoVigencia.value = vigenciaOriginalNoFormulario;
+    } else if (selectTurno.value !== turnoAnteriorNoFormulario
+        && selectTurno.value !== turnoOriginalNoFormulario) {
+      campoVigencia.value = formatarDataHoraLocal();
+    }
+  } else if (!campoVigencia.value) {
+    campoVigencia.value = formatarDataHoraLocal();
+  }
+  turnoAnteriorNoFormulario = selectTurno.value;
 }
 
 function jornadaConfigurada(turno) {
@@ -921,10 +941,17 @@ async function abrirFormularioFuncionario(funcionario = null) {
     selectTurno.value = funcionario?.turnoId != null
       ? String(funcionario.turnoId)
       : funcionario?.turno ? `legacy:${funcionario.turno}` : "";
-    document.querySelector("#funcionario-turno-vigencia").value =
+    const campoVigencia = document.querySelector("#funcionario-turno-vigencia");
+    campoVigencia.value =
       funcionario?.turnoVigenciaInicio
         ? funcionario.turnoVigenciaInicio.slice(0, 10)
-        : formatarDataHoraLocal().slice(0, 10);
+        : formatarDataHoraLocal();
+    if (funcionario?.turnoVigenciaInicio) {
+      campoVigencia.value = funcionario.turnoVigenciaInicio.slice(0, 16);
+    }
+    turnoOriginalNoFormulario = selectTurno.value;
+    vigenciaOriginalNoFormulario = campoVigencia.value;
+    turnoAnteriorNoFormulario = selectTurno.value;
     atualizarCampoVigenciaTurno(false);
     const selectDepartamento = document.querySelector("#departamento");
     const departamentoAtual = [...selectDepartamento.options].find((opcao) =>
@@ -1027,7 +1054,7 @@ async function salvarFuncionario(evento) {
     turno: turnoLegado,
     turnoId,
     turnoVigenciaInicio: turnoId
-      ? `${dadosFormulario.get("turnoVigenciaInicio")}T00:00:00`
+      ? dadosFormulario.get("turnoVigenciaInicio")
       : null,
     departamentoId: Number(dadosFormulario.get("departamento"))
   };

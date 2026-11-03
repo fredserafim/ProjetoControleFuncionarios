@@ -19,6 +19,9 @@ public interface RealizacaoTurnoRepository extends JpaRepository<RealizacaoTurno
     Optional<RealizacaoTurno> findByAtribuicao_IdAndInicioPlanejado(
             Long atribuicaoId, java.time.LocalDateTime inicioPlanejado);
 
+    /** Lista realizações ligadas a uma atribuição específica, inclusive sem marcações reais. */
+    List<RealizacaoTurno> findByAtribuicao_Id(Long atribuicaoId);
+
     /** Lista todas as realizações ligadas às atribuições do funcionário. */
     List<RealizacaoTurno> findByAtribuicao_Funcionario_Id(Long funcionarioId);
 

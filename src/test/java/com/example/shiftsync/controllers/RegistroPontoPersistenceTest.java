@@ -22,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
@@ -225,6 +226,233 @@ class RegistroPontoPersistenceTest {
                 persistida.getFimIntervaloReal());
         assertEquals(LocalDateTime.of(2026, 11, 3, 18, 0), persistida.getFimReal());
         assertEquals(4, auditoriaRepository.findByRealizacao_Id(persistida.getId()).size());
+    }
+
+    @Test
+    void trocaTurnoComHistoricoPreservaRegistroEConsultaNovaVigencia() throws Exception {
+        String cpfFuncionario = "93541134780";
+        String cpfGestor = "52998224725";
+        LocalDateTime inicioHistorico = LocalDateTime.of(2026, 11, 2, 0, 0);
+        LocalDateTime novaVigencia = LocalDateTime.of(2026, 11, 3, 20, 0);
+
+        Usuario gestor = new Usuario("Gestor de teste", cpfGestor, "1990-01-01");
+        gestor.setStatus("A");
+        usuarioRepository.saveAndFlush(gestor);
+
+        Funcionario funcionario = new Funcionario();
+        funcionario.setNome("Funcionário com histórico");
+        funcionario.setCpf(cpfFuncionario);
+        funcionario.setStatus("A");
+        funcionarioRepository.saveAndFlush(funcionario);
+
+        Turno turnoAnterior = criarTurno("Jornada administrativa", DayOfWeek.MONDAY,
+                LocalTime.of(8, 0), LocalTime.of(17, 0));
+        Turno turnoNovo = criarTurno("Jornada noturna", DayOfWeek.TUESDAY,
+                LocalTime.of(22, 0), LocalTime.of(6, 0));
+        turnoRepository.saveAndFlush(turnoAnterior);
+        turnoRepository.saveAndFlush(turnoNovo);
+
+        AtribuicaoTurno atribuicaoAnterior = new AtribuicaoTurno();
+        atribuicaoAnterior.setFuncionario(funcionario);
+        atribuicaoAnterior.setTurno(turnoAnterior);
+        atribuicaoAnterior.setVigenciaInicio(inicioHistorico);
+        atribuicaoTurnoRepository.saveAndFlush(atribuicaoAnterior);
+
+        RealizacaoTurno realizacaoAnterior = new RealizacaoTurno();
+        realizacaoAnterior.setAtribuicao(atribuicaoAnterior);
+        realizacaoAnterior.setInicioPlanejado(LocalDateTime.of(2026, 11, 2, 8, 0));
+        realizacaoAnterior.setFimPlanejado(LocalDateTime.of(2026, 11, 2, 17, 0));
+        realizacaoAnterior.setInicioReal(realizacaoAnterior.getInicioPlanejado());
+        realizacaoAnterior.setFimReal(realizacaoAnterior.getFimPlanejado());
+        realizacaoAnterior.setStatus(StatusRealizacaoTurno.REALIZADO);
+        realizacaoAnterior.setConfirmadoEm(realizacaoAnterior.getFimPlanejado());
+        realizacaoTurnoRepository.saveAndFlush(realizacaoAnterior);
+
+        RegistroPontoAuditoria auditoria = new RegistroPontoAuditoria();
+        auditoria.setRealizacao(realizacaoAnterior);
+        auditoria.setMarcacao("SAIDA_FINAL");
+        auditoria.setRegistradoEm(realizacaoAnterior.getFimPlanejado());
+        auditoria.setRegistradoPorCpf(cpfGestor);
+        auditoriaRepository.saveAndFlush(auditoria);
+
+        FuncionarioController funcionarioController = new FuncionarioController();
+        ReflectionTestUtils.setField(funcionarioController, "funcionarioRepository", funcionarioRepository);
+        ReflectionTestUtils.setField(funcionarioController, "turnoRepository", turnoRepository);
+        ReflectionTestUtils.setField(
+                funcionarioController, "atribuicaoTurnoRepository", atribuicaoTurnoRepository);
+        ReflectionTestUtils.setField(
+                funcionarioController, "realizacaoTurnoRepository", realizacaoTurnoRepository);
+        MockMvc apiFuncionario = MockMvcBuilders.standaloneSetup(funcionarioController)
+                .setControllerAdvice(new ApiExceptionHandler())
+                .build();
+
+        apiFuncionario.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/funcionario/" + funcionario.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "turnoId": %d,
+                                  "turnoVigenciaInicio": "%s"
+                                }
+                                """.formatted(turnoNovo.getId(), novaVigencia)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turnoId").value(turnoNovo.getId()))
+                .andExpect(jsonPath("$.turnoVigenciaInicio")
+                        .value("2026-11-03T20:00:00"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        List<AtribuicaoTurno> historico = atribuicaoTurnoRepository
+                .findByFuncionario_IdOrderByVigenciaInicioAsc(funcionario.getId());
+        assertEquals(2, historico.size());
+        assertEquals(novaVigencia, historico.get(0).getVigenciaFim());
+        assertEquals(turnoAnterior.getId(), historico.get(0).getTurno().getId());
+        assertEquals(novaVigencia, historico.get(1).getVigenciaInicio());
+        assertEquals(turnoNovo.getId(), historico.get(1).getTurno().getId());
+
+        RealizacaoTurno registroPersistido = realizacaoTurnoRepository
+                .findById(realizacaoAnterior.getId()).orElseThrow();
+        assertEquals(historico.get(0).getId(), registroPersistido.getAtribuicao().getId());
+        assertEquals(1, auditoriaRepository
+                .findByRealizacao_Id(registroPersistido.getId()).size());
+
+        Clock clock = Clock.fixed(
+                LocalDateTime.of(2026, 11, 11, 20, 0)
+                        .atZone(ZoneId.of("America/Sao_Paulo")).toInstant(),
+                ZoneId.of("America/Sao_Paulo"));
+        MockMvc apiPonto = MockMvcBuilders.standaloneSetup(new RegistroPontoController(
+                        funcionarioRepository,
+                        atribuicaoTurnoRepository,
+                        realizacaoTurnoRepository,
+                        auditoriaRepository,
+                        usuarioRepository,
+                        clock))
+                .setControllerAdvice(new ApiExceptionHandler())
+                .build();
+
+        apiPonto.perform(get("/ponto")
+                        .param("cpf", cpfFuncionario)
+                        .param("data", "2026-11-02")
+                        .with(request -> {
+                            request.setAttribute("authenticatedCpf", cpfGestor);
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entrada").value("2026-11-02T08:00:00"));
+
+        apiPonto.perform(get("/ponto")
+                        .param("cpf", cpfFuncionario)
+                        .param("data", "2026-11-10")
+                        .with(request -> {
+                            request.setAttribute("authenticatedCpf", cpfGestor);
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.inicioPlanejado").value("2026-11-10T22:00:00"));
+    }
+
+    @Test
+    void corrigeAtribuicaoSemRealizacoesNaMesmaLinhaEConsultaNovoTurno() throws Exception {
+        String cpfFuncionario = "11144477735";
+        String cpfGestor = "52998224725";
+        LocalDateTime vigenciaInicial = LocalDateTime.of(2026, 11, 2, 0, 0);
+        LocalDateTime novaVigencia = LocalDateTime.of(2026, 11, 3, 20, 0);
+
+        Usuario gestor = new Usuario("Gestor de teste", cpfGestor, "1990-01-01");
+        gestor.setStatus("A");
+        usuarioRepository.saveAndFlush(gestor);
+
+        Funcionario funcionario = new Funcionario();
+        funcionario.setNome("Funcionário sem realizações");
+        funcionario.setCpf(cpfFuncionario);
+        funcionario.setStatus("A");
+        funcionarioRepository.saveAndFlush(funcionario);
+
+        Turno turnoAnterior = criarTurno("Jornada administrativa", DayOfWeek.MONDAY,
+                LocalTime.of(8, 0), LocalTime.of(17, 0));
+        Turno turnoCorrigido = criarTurno("Jornada noturna", DayOfWeek.TUESDAY,
+                LocalTime.of(22, 0), LocalTime.of(6, 0));
+        turnoRepository.saveAndFlush(turnoAnterior);
+        turnoRepository.saveAndFlush(turnoCorrigido);
+
+        AtribuicaoTurno atribuicaoOriginal = new AtribuicaoTurno();
+        atribuicaoOriginal.setFuncionario(funcionario);
+        atribuicaoOriginal.setTurno(turnoAnterior);
+        atribuicaoOriginal.setVigenciaInicio(vigenciaInicial);
+        atribuicaoTurnoRepository.saveAndFlush(atribuicaoOriginal);
+
+        FuncionarioController funcionarioController = new FuncionarioController();
+        ReflectionTestUtils.setField(funcionarioController, "funcionarioRepository", funcionarioRepository);
+        ReflectionTestUtils.setField(funcionarioController, "turnoRepository", turnoRepository);
+        ReflectionTestUtils.setField(
+                funcionarioController, "atribuicaoTurnoRepository", atribuicaoTurnoRepository);
+        ReflectionTestUtils.setField(
+                funcionarioController, "realizacaoTurnoRepository", realizacaoTurnoRepository);
+        MockMvc apiFuncionario = MockMvcBuilders.standaloneSetup(funcionarioController)
+                .setControllerAdvice(new ApiExceptionHandler())
+                .build();
+
+        apiFuncionario.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/funcionario/" + funcionario.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "turnoId": %d,
+                                  "turnoVigenciaInicio": "%s"
+                                }
+                                """.formatted(turnoCorrigido.getId(), novaVigencia)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.turnoId").value(turnoCorrigido.getId()))
+                .andExpect(jsonPath("$.turnoVigenciaInicio")
+                        .value("2026-11-03T20:00:00"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        List<AtribuicaoTurno> atribuicoes = atribuicaoTurnoRepository
+                .findByFuncionario_IdOrderByVigenciaInicioAsc(funcionario.getId());
+        assertEquals(1, atribuicoes.size());
+        assertEquals(atribuicaoOriginal.getId(), atribuicoes.get(0).getId());
+        assertEquals(turnoCorrigido.getId(), atribuicoes.get(0).getTurno().getId());
+        assertEquals(novaVigencia, atribuicoes.get(0).getVigenciaInicio());
+
+        Clock clock = Clock.fixed(
+                LocalDateTime.of(2026, 11, 11, 20, 0)
+                        .atZone(ZoneId.of("America/Sao_Paulo")).toInstant(),
+                ZoneId.of("America/Sao_Paulo"));
+        MockMvc apiPonto = MockMvcBuilders.standaloneSetup(new RegistroPontoController(
+                        funcionarioRepository,
+                        atribuicaoTurnoRepository,
+                        realizacaoTurnoRepository,
+                        auditoriaRepository,
+                        usuarioRepository,
+                        clock))
+                .setControllerAdvice(new ApiExceptionHandler())
+                .build();
+        apiPonto.perform(get("/ponto")
+                        .param("cpf", cpfFuncionario)
+                        .param("data", "2026-11-10")
+                        .with(request -> {
+                            request.setAttribute("authenticatedCpf", cpfGestor);
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.inicioPlanejado").value("2026-11-10T22:00:00"));
+    }
+
+    private Turno criarTurno(
+            String nome, DayOfWeek dia, LocalTime inicio, LocalTime fim) {
+        Turno turno = new Turno();
+        turno.setNome(nome);
+        turno.setPeriodo(nome);
+        turno.setStatus("A");
+        turno.setTipoJornada("PERSONALIZADA");
+        turno.setTipoEscala("SEMANAL_FIXA");
+        turno.setHorarioInicio(inicio);
+        turno.setHorarioFim(fim);
+        turno.setDiasSemana(Set.of(dia));
+        return turno;
     }
 
     private void registrarPelaApi(

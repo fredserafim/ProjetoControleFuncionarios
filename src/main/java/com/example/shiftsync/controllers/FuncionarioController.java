@@ -378,172 +378,125 @@ public class FuncionarioController {
         return turno;
     }
 
-    /**
-     * Trata separadamente troca de turno e correção da data no mesmo turno.
-     * A data selecionada representa o início do dia; alterações que excluiriam
-     * realizações já registradas são recusadas para preservar o histórico.
-     */
+    /** Valida o turno selecionado e delega a atualização com proteção do histórico. */
     private void atualizarAtribuicaoJornada(
             Funcionario funcionario, FuncionarioRequest request) {
         Turno jornada = buscarJornadaAtiva(request.getTurnoId());
-        var atribuicaoAtual = atribuicaoTurnoRepository
-                .findFirstByFuncionario_IdAndVigenciaFimIsNullOrderByVigenciaInicioDesc(
-                        funcionario.getId());
-        LocalDateTime vigencia = inicioDoDia(request.getTurnoVigenciaInicio());
-
-        if (atribuicaoAtual.isEmpty()
-                || !atribuicaoAtual.get().getTurno().getId().equals(jornada.getId())) {
-            atribuirJornada(funcionario, jornada, vigencia);
-            return;
-        }
-
-        AtribuicaoTurno atual = atribuicaoAtual.get();
-        if (atual.getVigenciaInicio().equals(vigencia)) {
-            return;
-        }
-
-        List<AtribuicaoTurno> historico = atribuicaoTurnoRepository
-                .findByFuncionario_IdOrderByVigenciaInicioAsc(funcionario.getId());
-        AtribuicaoTurno anterior = historico.stream()
-                .filter(item -> !item.getId().equals(atual.getId()))
-                .filter(item -> atual.getVigenciaInicio().equals(item.getVigenciaFim()))
-                .max(Comparator.comparing(AtribuicaoTurno::getVigenciaInicio))
-                .orElse(null);
-
-        if (anterior != null && !vigencia.isAfter(anterior.getVigenciaInicio())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "A vigência não pode ser anterior ao início da atribuição histórica precedente.");
-        }
-
-        validarRealizacoesNaVigenciaAtualizada(
-                atual, anterior, vigencia, false,
-                realizacaoTurnoRepository.findByAtribuicao_Funcionario_Id(funcionario.getId()));
-        validarAusenciaDeSobreposicoesNaEdicao(
-                jornada, vigencia, historico, atual, anterior);
-
-        if (anterior != null) {
-            RegrasJornada.validarTransicao(anterior.getTurno(), jornada, vigencia);
-            anterior.setVigenciaFim(vigencia);
-            atribuicaoTurnoRepository.save(anterior);
-        }
-        atual.setVigenciaInicio(vigencia);
-        atribuicaoTurnoRepository.save(atual);
-
-        funcionario.setJornada(jornada);
-        funcionario.setJornadaVigenciaInicio(vigencia);
-        funcionario.setTurno(jornada.getNome() == null
-                ? jornada.getPeriodo() : jornada.getNome());
-    }
-
-    private LocalDateTime inicioDoDia(LocalDateTime vigenciaInformada) {
-        return (vigenciaInformada == null
-                ? LocalDate.now().atStartOfDay()
-                : vigenciaInformada.toLocalDate().atStartOfDay());
-    }
-
-    /** Garante que a nova vigência continue abrangendo todas as realizações existentes. */
-    private void validarRealizacoesNaVigenciaAtualizada(
-            AtribuicaoTurno atual,
-            AtribuicaoTurno anterior,
-            LocalDateTime novoInicio,
-            boolean encerrandoAtribuicao,
-            List<RealizacaoTurno> realizacoes) {
-        for (RealizacaoTurno realizacao : realizacoes) {
-            Long atribuicaoId = realizacao.getAtribuicao().getId();
-            if (atribuicaoId.equals(atual.getId())
-                    && (encerrandoAtribuicao
-                    ? realizacao.getFimPlanejado().isAfter(novoInicio)
-                    : realizacao.getInicioPlanejado().isBefore(novoInicio))) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "A vigência não pode ser alterada porque há registros de ponto "
-                                + "que ficariam fora desta atribuição.");
-            }
-            if (anterior != null && atribuicaoId.equals(anterior.getId())
-                    && (realizacao.getInicioPlanejado().isBefore(anterior.getVigenciaInicio())
-                    || realizacao.getFimPlanejado().isAfter(novoInicio))) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "A vigência não pode ser alterada porque a nova data afetaria "
-                                + "registros de ponto da atribuição anterior.");
-            }
-        }
-    }
-
-    /** Verifica conflitos de jornada ao mover a fronteira entre a atribuição atual e a anterior. */
-    private void validarAusenciaDeSobreposicoesNaEdicao(
-            Turno jornada,
-            LocalDateTime novoInicio,
-            List<AtribuicaoTurno> historico,
-            AtribuicaoTurno atual,
-            AtribuicaoTurno anterior) {
-        for (AtribuicaoTurno existente : historico) {
-            if (existente.getId().equals(atual.getId())) {
-                continue;
-            }
-            LocalDateTime fimExistente = existente.getId().equals(
-                    anterior == null ? null : anterior.getId())
-                    ? novoInicio : existente.getVigenciaFim();
-            RegrasJornada.encontrarSobreposicao(
-                            jornada, novoInicio, atual.getVigenciaFim(),
-                            existente.getTurno(), existente.getVigenciaInicio(), fimExistente)
-                    .ifPresent(conflito -> {
-                        String nome = existente.getTurno().getNome() == null
-                                ? existente.getTurno().getPeriodo()
-                                : existente.getTurno().getNome();
-                        throw new ResponseStatusException(
-                                HttpStatus.CONFLICT, mensagemConflito(nome, conflito));
-                    });
-        }
+        atribuirJornada(funcionario, jornada, request.getTurnoVigenciaInicio());
     }
 
     /**
-     * Fecha a atribuição anterior e cria a nova a partir da data de vigência.
-     * Antes de persistir, valida transição de descanso e sobreposição com outras jornadas.
+     * Atualiza diretamente a atribuição se nunca foi usada; quando já existe
+     * qualquer realização, fecha o período e cria uma nova versão histórica.
      */
     private void atribuirJornada(
             Funcionario funcionario, Turno novaJornada, LocalDateTime vigenciaInicio) {
-        LocalDateTime vigencia = inicioDoDia(vigenciaInicio);
+        LocalDateTime vigencia = vigenciaInicio == null
+                ? LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MINUTES)
+                : vigenciaInicio.truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
         var atribuicaoAtual = atribuicaoTurnoRepository
                 .findFirstByFuncionario_IdAndVigenciaFimIsNullOrderByVigenciaInicioDesc(
                         funcionario.getId());
         List<AtribuicaoTurno> historico = atribuicaoTurnoRepository
                 .findByFuncionario_IdOrderByVigenciaInicioAsc(funcionario.getId());
 
-        if (atribuicaoAtual.isPresent()
-                && !vigencia.isAfter(atribuicaoAtual.get().getVigenciaInicio())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "A nova vigência deve ser posterior ao início da jornada atual.");
-        }
-        validarAusenciaDeSobreposicoes(
-                novaJornada, vigencia, null, historico,
-                atribuicaoAtual.orElse(null), vigencia);
-
         if (atribuicaoAtual.isPresent()) {
-            AtribuicaoTurno anterior = atribuicaoAtual.get();
-            validarRealizacoesNaVigenciaAtualizada(
-                    anterior,
-                    null,
-                    vigencia,
-                    true,
-                    realizacaoTurnoRepository.findByAtribuicao_Funcionario_Id(funcionario.getId()));
-            RegrasJornada.validarTransicao(anterior.getTurno(), novaJornada, vigencia);
-            anterior.setVigenciaFim(vigencia);
-            atribuicaoTurnoRepository.save(anterior);
+            AtribuicaoTurno atual = atribuicaoAtual.get();
+            List<RealizacaoTurno> realizacoesAtuais =
+                    realizacaoTurnoRepository.findByAtribuicao_Id(atual.getId());
+
+            if (realizacoesAtuais.isEmpty()) {
+                if (atual.getTurno().getId().equals(novaJornada.getId())
+                        && atual.getVigenciaInicio().equals(vigencia)) {
+                    atualizarJornadaCompatibilidade(funcionario, novaJornada, vigencia);
+                    return;
+                }
+                List<AtribuicaoTurno> outrasAtribuicoes = historico.stream()
+                        .filter(item -> !item.getId().equals(atual.getId()))
+                        .toList();
+                AtribuicaoTurno anterior = historico.stream()
+                        .filter(item -> atual.getVigenciaInicio().equals(item.getVigenciaFim()))
+                        .max(Comparator.comparing(AtribuicaoTurno::getVigenciaInicio))
+                        .orElse(null);
+                if (anterior != null && vigencia.isBefore(atual.getVigenciaInicio())) {
+                    if (!vigencia.isAfter(anterior.getVigenciaInicio())) {
+                        throw new ResponseStatusException(
+                                HttpStatus.CONFLICT,
+                                "A vigência não pode avançar sobre o início de uma atribuição histórica.");
+                    }
+                    boolean registrosAfetados = realizacaoTurnoRepository
+                            .findByAtribuicao_Id(anterior.getId()).stream()
+                            .anyMatch(realizacao -> realizacao.getFimPlanejado().isAfter(vigencia));
+                    if (registrosAfetados) {
+                        throw new ResponseStatusException(
+                                HttpStatus.CONFLICT,
+                                "A vigência informada afetaria registros de ponto da atribuição anterior.");
+                    }
+                    RegrasJornada.validarTransicao(anterior.getTurno(), novaJornada, vigencia);
+                    anterior.setVigenciaFim(vigencia);
+                    atribuicaoTurnoRepository.save(anterior);
+                } else {
+                    RegrasJornada.validarTransicao(atual.getTurno(), novaJornada, vigencia);
+                }
+                validarAusenciaDeSobreposicoes(
+                        novaJornada, vigencia, null, outrasAtribuicoes, null, null);
+                atual.setTurno(novaJornada);
+                atual.setVigenciaInicio(vigencia);
+                atribuicaoTurnoRepository.save(atual);
+                atualizarJornadaCompatibilidade(funcionario, novaJornada, vigencia);
+                return;
+            }
+
+            if (atual.getTurno().getId().equals(novaJornada.getId())
+                    && atual.getVigenciaInicio().equals(vigencia)) {
+                atualizarJornadaCompatibilidade(funcionario, novaJornada, vigencia);
+                return;
+            }
+            if (!vigencia.isAfter(atual.getVigenciaInicio())) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "A nova vigência deve ser posterior ao início da atribuição atual "
+                                + "porque já existem realizações de turno vinculadas.");
+            }
+
+            validarAusenciaDeSobreposicoes(
+                    novaJornada, vigencia, null, historico, atual, vigencia);
+            for (RealizacaoTurno realizacao : realizacoesAtuais) {
+                if (realizacao.getFimPlanejado().isAfter(vigencia)) {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "A nova vigência afetaria uma realização já vinculada à jornada atual.");
+                }
+            }
+            RegrasJornada.validarTransicao(atual.getTurno(), novaJornada, vigencia);
+            atual.setVigenciaFim(vigencia);
+            atribuicaoTurnoRepository.save(atual);
+
+            AtribuicaoTurno novaAtribuicao = new AtribuicaoTurno();
+            novaAtribuicao.setFuncionario(funcionario);
+            novaAtribuicao.setTurno(novaJornada);
+            novaAtribuicao.setVigenciaInicio(vigencia);
+            atribuicaoTurnoRepository.save(novaAtribuicao);
+            atualizarJornadaCompatibilidade(funcionario, novaJornada, vigencia);
+            return;
         }
 
+        validarAusenciaDeSobreposicoes(
+                novaJornada, vigencia, null, historico, null, null);
         AtribuicaoTurno atribuicao = new AtribuicaoTurno();
         atribuicao.setFuncionario(funcionario);
         atribuicao.setTurno(novaJornada);
         atribuicao.setVigenciaInicio(vigencia);
         atribuicaoTurnoRepository.save(atribuicao);
+        atualizarJornadaCompatibilidade(funcionario, novaJornada, vigencia);
+    }
 
-        funcionario.setJornada(novaJornada);
+    private void atualizarJornadaCompatibilidade(
+            Funcionario funcionario, Turno jornada, LocalDateTime vigencia) {
+        funcionario.setJornada(jornada);
         funcionario.setJornadaVigenciaInicio(vigencia);
-        funcionario.setTurno(novaJornada.getNome() == null
-                ? novaJornada.getPeriodo() : novaJornada.getNome());
+        funcionario.setTurno(jornada.getNome() == null
+                ? jornada.getPeriodo() : jornada.getNome());
     }
 
     /** Impede atribuições simultâneas incompatíveis para o mesmo funcionário. */
