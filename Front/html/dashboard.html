@@ -62,16 +62,16 @@
           </p>
           <div class="ponto-horarios" aria-label="Horários registrados">
             <label for="ponto-entrada">Horário de entrada
-              <input id="ponto-entrada" data-ponto-horario="entrada" type="time" readonly>
+              <input id="ponto-entrada" data-ponto-horario="entrada" type="time" required>
             </label>
             <label for="ponto-saida-intervalo">Saída para intervalo
-              <input id="ponto-saida-intervalo" data-ponto-horario="saidaIntervalo" type="time" readonly>
+              <input id="ponto-saida-intervalo" data-ponto-horario="saidaIntervalo" type="time" required>
             </label>
             <label for="ponto-retorno-intervalo">Retorno do intervalo
-              <input id="ponto-retorno-intervalo" data-ponto-horario="retornoIntervalo" type="time" readonly>
+              <input id="ponto-retorno-intervalo" data-ponto-horario="retornoIntervalo" type="time" required>
             </label>
             <label for="ponto-saida-final">Saída do expediente
-              <input id="ponto-saida-final" data-ponto-horario="saidaFinal" type="time" readonly>
+              <input id="ponto-saida-final" data-ponto-horario="saidaFinal" type="time" required>
             </label>
           </div>
           <!-- O JavaScript habilita somente o botão correspondente à próxima etapa. -->
@@ -81,7 +81,7 @@
             <button type="button" data-ponto-marcar="RETORNO_INTERVALO" disabled>Retorno do intervalo</button>
             <button type="button" data-ponto-marcar="SAIDA_FINAL" disabled>Saída final</button>
           </div>
-          <p class="descricao">Os horários são fornecidos pelo servidor ao registrar cada etapa. Não é necessário informar antecipadamente o fim do expediente.</p>
+          <p class="descricao">Informe o horário de cada etapa antes de registrá-la. Cada marcação será vinculada à data da jornada selecionada.</p>
 
           <div class="ponto-resumo">
             <h3>Registros por período</h3>

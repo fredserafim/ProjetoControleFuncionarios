@@ -149,10 +149,6 @@ button:disabled {
   margin: 20px 0;
 }
 
-.ponto-horarios input[readonly] {
-  background: #f3f6f2;
-}
-
 .acoes-ponto {
   display: flex;
   flex-wrap: wrap;

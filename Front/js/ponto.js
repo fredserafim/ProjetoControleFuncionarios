@@ -9,6 +9,12 @@ const statusResumoPonto = document.querySelector("[data-ponto-resumo-status]");
 const botaoConsultarPonto = document.querySelector("[data-ponto-consultar]");
 const botoesMarcacaoPonto = [...document.querySelectorAll("[data-ponto-marcar]")];
 const camposHorarioPonto = [...document.querySelectorAll("[data-ponto-horario]")];
+const campoHorarioPorMarcacao = {
+  ENTRADA: "entrada",
+  SAIDA_INTERVALO: "saidaIntervalo",
+  RETORNO_INTERVALO: "retornoIntervalo",
+  SAIDA_FINAL: "saidaFinal"
+};
 let funcionarioPonto = null;
 let nomeFuncionarioPonto = "";
 let requisicaoPonto = 0;
@@ -144,10 +150,20 @@ async function consultarPontoAtual(evento) {
 }
 
 async function registrarPonto(botao) {
-  // Envia apenas CPF, data e etapa; o horário oficial é fornecido pelo servidor.
   if (!funcionarioPonto) {
     statusRegistroPonto.classList.add("erro");
     statusRegistroPonto.textContent = "Consulte o funcionário e a jornada antes de registrar.";
+    return;
+  }
+
+  const campoHorario = camposHorarioPonto.find(
+    (campo) => campo.dataset.pontoHorario
+      === campoHorarioPorMarcacao[botao.dataset.pontoMarcar]
+  );
+  if (!campoHorario || !campoHorario.value) {
+    statusRegistroPonto.classList.add("erro");
+    statusRegistroPonto.textContent = "Informe o horário desta marcação antes de registrá-la.";
+    campoHorario?.focus();
     return;
   }
 
@@ -157,7 +173,8 @@ async function registrarPonto(botao) {
   try {
     const registro = await api.registrarMarcacaoPonto({
       ...funcionarioPonto,
-      marcacao: botao.dataset.pontoMarcar
+      marcacao: botao.dataset.pontoMarcar,
+      horario: campoHorario.value
     });
     atualizarVisualizacaoPonto(registro);
   } catch (erro) {

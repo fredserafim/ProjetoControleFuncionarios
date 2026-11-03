@@ -45,9 +45,9 @@ import java.util.Optional;
 /**
  * Endpoints de consulta, marcação e apuração mensal do ponto.
  *
- * A identidade do funcionário é conferida com o CPF presente no JWT. As marcações
- * usam o Clock injetado, respeitam a sequência temporal e são registradas também
- * na tabela de auditoria.
+ * A identidade do funcionário é conferida com o CPF presente no JWT. Os horários
+ * informados são associados à jornada selecionada, respeitam a sequência temporal
+ * e são registrados também na tabela de auditoria.
  */
 @RestController
 @RequestMapping("/ponto")
@@ -152,20 +152,21 @@ public class RegistroPontoController {
     }
 
     /**
-     * Grava a próxima etapa cronológica (entrada, saída/retorno de intervalo ou saída final).
+     * Grava a próxima etapa cronológica com o horário informado para a jornada.
      *
      * A operação é transacional e bloqueia o funcionário para evitar duas marcações
      * concorrentes; a mesma data e o tipo de marcação são registrados para auditoria.
      */
     @PostMapping("/marcacoes")
     @Transactional
-    @Operation(summary = "Registra a próxima marcação de ponto com horário do servidor")
+    @Operation(summary = "Registra a próxima marcação de ponto com horário informado")
     public ResponseEntity<RegistroPontoResponse> registrarMarcacao(
             @RequestBody RegistroPontoRequest requestBody,
             HttpServletRequest request) {
         if (requestBody == null || requestBody.getData() == null
-                || requestBody.getMarcacao() == null) {
-            throw requisicaoInvalida("Informe o CPF, a data e o tipo de marcação.");
+                || requestBody.getMarcacao() == null || requestBody.getHorario() == null) {
+            throw requisicaoInvalida(
+                    "Informe o CPF, a data, o tipo e o horário da marcação.");
         }
         Funcionario funcionario = buscarFuncionarioAutenticado(requestBody.getCpf(), request);
         Funcionario funcionarioBloqueado = funcionarioRepository
@@ -184,13 +185,16 @@ public class RegistroPontoController {
                     "O registro com quatro marcações suporta jornadas com até um intervalo.");
         }
         validarJanelaDeRegistro(requestBody.getData(), ocorrencia.ocorrencia(), agora);
+        LocalDateTime horarioMarcacao = montarHorarioDaJornada(
+                requestBody.getData(), requestBody.getHorario(), ocorrencia.ocorrencia());
+        validarHorarioNaJornada(horarioMarcacao, ocorrencia.ocorrencia());
 
         RealizacaoTurno realizacao = realizacaoTurnoRepository
                 .findByAtribuicao_IdAndInicioPlanejado(
                         ocorrencia.atribuicao().getId(), ocorrencia.ocorrencia().inicio())
                 .orElseGet(() -> novaRealizacao(ocorrencia));
-        validarProximaMarcacao(realizacao, requestBody.getMarcacao(), agora);
-        aplicarMarcacao(realizacao, requestBody.getMarcacao(), agora);
+        validarProximaMarcacao(realizacao, requestBody.getMarcacao(), horarioMarcacao);
+        aplicarMarcacao(realizacao, requestBody.getMarcacao(), horarioMarcacao);
         realizacao.setConfirmadoEm(agora);
         RealizacaoTurno salva = realizacaoTurnoRepository.save(realizacao);
 
@@ -442,6 +446,27 @@ public class RegistroPontoController {
         }
     }
 
+    /** Combina o horário informado com a data inicial da jornada, inclusive em turnos noturnos. */
+    private LocalDateTime montarHorarioDaJornada(
+            LocalDate data, LocalTime horario, RegrasJornada.Ocorrencia ocorrencia) {
+        LocalDateTime horarioMarcacao = data.atTime(horario);
+        if (ocorrencia.fim().toLocalDate().isAfter(ocorrencia.inicio().toLocalDate())
+                && horario.isBefore(ocorrencia.inicio().toLocalTime())) {
+            return horarioMarcacao.plusDays(1);
+        }
+        return horarioMarcacao;
+    }
+
+    /** Rejeita horários que, embora válidos, não correspondem à jornada selecionada. */
+    private void validarHorarioNaJornada(
+            LocalDateTime horario, RegrasJornada.Ocorrencia ocorrencia) {
+        if (horario.isBefore(ocorrencia.inicio().minusHours(12))
+                || horario.isAfter(ocorrencia.fim().plusHours(4))) {
+            throw requisicaoInvalida(
+                    "O horário informado não pertence à data e à jornada selecionadas.");
+        }
+    }
+
     /** Cria o registro inicial em andamento para uma ocorrência ainda sem marcações. */
     private RealizacaoTurno novaRealizacao(OcorrenciaFuncionario ocorrencia) {
         RealizacaoTurno realizacao = new RealizacaoTurno();
@@ -488,17 +513,18 @@ public class RegistroPontoController {
 
     /** Atualiza o campo correspondente à marcação e conclui a realização na saída final. */
     private void aplicarMarcacao(
-            RealizacaoTurno realizacao, TipoMarcacaoPonto marcacao, LocalDateTime agora) {
+            RealizacaoTurno realizacao, TipoMarcacaoPonto marcacao, LocalDateTime horarioMarcacao) {
         switch (marcacao) {
-            case ENTRADA -> realizacao.setInicioReal(agora);
-            case SAIDA_INTERVALO -> realizacao.setInicioIntervaloReal(agora);
+            case ENTRADA -> realizacao.setInicioReal(horarioMarcacao);
+            case SAIDA_INTERVALO -> realizacao.setInicioIntervaloReal(horarioMarcacao);
             case RETORNO_INTERVALO -> {
-                realizacao.setFimIntervaloReal(agora);
+                realizacao.setFimIntervaloReal(horarioMarcacao);
                 realizacao.setIntervalosNaoTrabalhados(List.of(
-                        new IntervaloRealizacao(realizacao.getInicioIntervaloReal(), agora)));
+                        new IntervaloRealizacao(
+                                realizacao.getInicioIntervaloReal(), horarioMarcacao)));
             }
             case SAIDA_FINAL -> {
-                realizacao.setFimReal(agora);
+                realizacao.setFimReal(horarioMarcacao);
                 realizacao.setStatus(StatusRealizacaoTurno.REALIZADO);
             }
         }

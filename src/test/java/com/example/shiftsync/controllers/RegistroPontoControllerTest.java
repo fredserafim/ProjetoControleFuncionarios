@@ -136,22 +136,28 @@ class RegistroPontoControllerTest {
 
     @Test
     void gravaQuatroMarcacoesEConsultaRegistroPersistido() throws Exception {
-        registrar("ENTRADA", "2026-10-27T09:00:00", "EM_ANDAMENTO");
-        registrar("SAIDA_INTERVALO", "2026-10-27T12:00:00", "EM_ANDAMENTO");
-        registrar("RETORNO_INTERVALO", "2026-10-27T12:30:00", "EM_ANDAMENTO");
-        registrar("SAIDA_FINAL", "2026-10-27T17:00:00", "IRREGULAR");
+        registrar("ENTRADA", "08:00", "EM_ANDAMENTO");
+        registrar("SAIDA_INTERVALO", "12:00", "EM_ANDAMENTO");
+        registrar("RETORNO_INTERVALO", "13:30", "EM_ANDAMENTO");
+        registrar("SAIDA_FINAL", "18:00", "IRREGULAR");
 
         mockMvc.perform(get("/ponto")
                         .param("cpf", CPF)
                         .param("data", DATA.toString())
                         .with(cpfAutenticado()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.entrada").value("2026-10-27T09:00:00"))
+                .andExpect(jsonPath("$.entrada").value("2026-10-27T08:00:00"))
                 .andExpect(jsonPath("$.saidaIntervalo").value("2026-10-27T12:00:00"))
-                .andExpect(jsonPath("$.retornoIntervalo").value("2026-10-27T12:30:00"))
-                .andExpect(jsonPath("$.saidaFinal").value("2026-10-27T17:00:00"))
+                .andExpect(jsonPath("$.retornoIntervalo").value("2026-10-27T13:30:00"))
+                .andExpect(jsonPath("$.saidaFinal").value("2026-10-27T18:00:00"))
                 .andExpect(jsonPath("$.minutosTrabalhados").value(450));
 
+        assertEquals(LocalDateTime.of(2026, 10, 27, 8, 0), persistido.get().getInicioReal());
+        assertEquals(LocalDateTime.of(2026, 10, 27, 12, 0),
+                persistido.get().getInicioIntervaloReal());
+        assertEquals(LocalDateTime.of(2026, 10, 27, 13, 30),
+                persistido.get().getFimIntervaloReal());
+        assertEquals(LocalDateTime.of(2026, 10, 27, 18, 0), persistido.get().getFimReal());
         assertEquals(1, persistido.get().getIntervalosNaoTrabalhados().size());
         assertEquals(450, minutosTrabalhados(persistido.get()));
         verify(realizacaoTurnoRepository, org.mockito.Mockito.times(4))
@@ -166,10 +172,22 @@ class RegistroPontoControllerTest {
                 .andExpect(status().isBadRequest());
         assertNull(persistido.get());
 
-        registrar("ENTRADA", "2026-10-27T09:00:00", "EM_ANDAMENTO");
-        postarMarcacao("ENTRADA")
+        registrar("ENTRADA", "09:00", "EM_ANDAMENTO");
+        postarMarcacao("ENTRADA", "10:00")
                 .andExpect(status().isBadRequest());
         assertNotNull(persistido.get());
+    }
+
+    @Test
+    void rejeitaHorarioVazioOuInvalido() throws Exception {
+        postarMarcacao("ENTRADA", null)
+                .andExpect(status().isBadRequest());
+        postarMarcacao("ENTRADA", "")
+                .andExpect(status().isBadRequest());
+        postarMarcacao("ENTRADA", "25:90")
+                .andExpect(status().isBadRequest());
+        assertNull(persistido.get());
+        verify(realizacaoTurnoRepository, never()).save(any(RealizacaoTurno.class));
     }
 
     @Test
@@ -189,10 +207,10 @@ class RegistroPontoControllerTest {
 
     @Test
     void naoPermiteRetornoDoIntervaloSemSaidaAnterior() throws Exception {
-        registrar("ENTRADA", "2026-10-27T09:00:00", "EM_ANDAMENTO");
+        registrar("ENTRADA", "09:00", "EM_ANDAMENTO");
         clock.definir(LocalDateTime.of(2026, 10, 27, 11, 0));
         clearInvocations(realizacaoTurnoRepository);
-        postarMarcacao("RETORNO_INTERVALO")
+        postarMarcacao("RETORNO_INTERVALO", "12:30")
                 .andExpect(status().isBadRequest());
 
         verify(realizacaoTurnoRepository, never()).save(any(RealizacaoTurno.class));
@@ -285,25 +303,28 @@ class RegistroPontoControllerTest {
                 .andExpect(jsonPath("$[0].data").value(DATA.toString()));
     }
 
-    private void registrar(String marcacao, String instante, String statusEsperado)
+    private void registrar(String marcacao, String horario, String statusEsperado)
             throws Exception {
-        clock.definir(LocalDateTime.parse(instante));
-        postarMarcacao(marcacao)
+        clock.definir(DATA.atTime(LocalTime.parse(horario)));
+        postarMarcacao(marcacao, horario)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(statusEsperado));
     }
 
-    private org.springframework.test.web.servlet.ResultActions postarMarcacao(String marcacao)
+    private org.springframework.test.web.servlet.ResultActions postarMarcacao(
+            String marcacao, String horario)
             throws Exception {
+        String horarioJson = horario == null ? "" : "\"horario\": \"%s\",".formatted(horario);
         return mockMvc.perform(post("/ponto/marcacoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
                           "cpf": "%s",
                           "data": "%s",
+                          %s
                           "marcacao": "%s"
                         }
-                        """.formatted(CPF, DATA, marcacao))
+                        """.formatted(CPF, DATA, horarioJson, marcacao))
                 .with(cpfAutenticado()));
     }
 
