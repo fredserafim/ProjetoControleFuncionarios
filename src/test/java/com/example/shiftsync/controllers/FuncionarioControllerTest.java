@@ -158,7 +158,7 @@ class FuncionarioControllerTest {
                         .content("""
                                 {
                                   "nome": "Ana Silva",
-                                  "cpf": "12345678900",
+                                  "cpf": "52998224725",
                                   "telefone": "11999990000",
                                   "departamentoId": 3
                                 }
@@ -185,7 +185,7 @@ class FuncionarioControllerTest {
                         .content("""
                                 {
                                   "nome": "Ana Silva",
-                                  "cpf": "12345678900",
+                                  "cpf": "52998224725",
                                   "telefone": "(48) 99999-1234",
                                   "cep": "88801000",
                                   "endereco": "Rua Exemplo, Centro - Criciúma/SC",
@@ -202,6 +202,33 @@ class FuncionarioControllerTest {
         verify(funcionarioRepository).save(captor.capture());
         org.junit.jupiter.api.Assertions.assertEquals("48999991234", captor.getValue().getTelefone());
         org.junit.jupiter.api.Assertions.assertEquals("88801000", captor.getValue().getCep());
+    }
+
+    @Test
+    void rejeitaCpfInvalidoEComDigitosRepetidosNoCadastro() throws Exception {
+        mockMvc.perform(post("/funcionario")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nome": "Ana Silva",
+                                  "cpf": "12345678900"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("CPF inválido."));
+
+        mockMvc.perform(post("/funcionario")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nome": "Ana Silva",
+                                  "cpf": "111.111.111-11"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("CPF inválido."));
+
+        verify(funcionarioRepository, never()).save(any(Funcionario.class));
     }
 
     @Test
@@ -224,7 +251,7 @@ class FuncionarioControllerTest {
                         .content("""
                                 {
                                   "nome": "Ana Silva",
-                                  "cpf": "12345678900",
+                                  "cpf": "52998224725",
                                   "telefone": "11999990000",
                                   "departamentoId": 3,
                                   "turnoId": 11,
@@ -451,6 +478,7 @@ class FuncionarioControllerTest {
                         .content("""
                                 {
                                   "nome": "Ana Silva",
+                                  "cpf": "52998224725",
                                   "departamentoId": 99
                                 }
                                 """))
@@ -463,7 +491,8 @@ class FuncionarioControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "nome": "Ana Silva"
+                          "nome": "Ana Silva",
+                          "cpf": "52998224725"
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
@@ -473,9 +502,10 @@ class FuncionarioControllerTest {
                         .content("""
                                 {
                                   "nome": "Ana Silva",
-                                  "departamento": "  "
-                                }
-                                """))
+                          "cpf": "52998224725",
+                          "departamento": "  "
+                        }
+                        """))
                 .andExpect(status().isBadRequest());
     }
 
@@ -509,7 +539,7 @@ class FuncionarioControllerTest {
     @Test
     void atualizaNomeECpfDoFuncionario() throws Exception {
         Funcionario funcionario = funcionario(7L, departamento(3L, "Financeiro"));
-        funcionario.setCpf("12345678900");
+        funcionario.setCpf("52998224725");
         when(funcionarioRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(funcionario));
         when(departamentoRepository.findById(3L))
                 .thenReturn(Optional.of(departamento(3L, "Financeiro")));
@@ -521,7 +551,7 @@ class FuncionarioControllerTest {
                         .content("""
                                 {
                                   "nome": "Ana Souza",
-                                  "cpf": "98765432100",
+                                  "cpf": "11144477735",
                                   "telefone": "(48) 99999-1234",
                                   "cep": "88801-000",
                                   "endereco": "Rua Atualizada",
@@ -532,7 +562,7 @@ class FuncionarioControllerTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome").value("Ana Souza"))
-                .andExpect(jsonPath("$.cpf").value("98765432100"))
+                .andExpect(jsonPath("$.cpf").value("11144477735"))
                 .andExpect(jsonPath("$.telefone").value("48999991234"))
                 .andExpect(jsonPath("$.cep").value("88801-000"))
                 .andExpect(jsonPath("$.endereco").value("Rua Atualizada"));
@@ -541,6 +571,44 @@ class FuncionarioControllerTest {
                 "48999991234".equals(atualizado.getTelefone())
                         && "88801-000".equals(atualizado.getCep())
                         && "Rua Atualizada".equals(atualizado.getEndereco())));
+    }
+
+    @Test
+    void aceitaCpfComPontuacaoNoCadastro() throws Exception {
+        when(departamentoRepository.findById(3L))
+                .thenReturn(Optional.of(departamento(3L, "Financeiro")));
+        when(funcionarioRepository.save(any(Funcionario.class))).thenAnswer(invocacao -> {
+            Funcionario funcionario = invocacao.getArgument(0);
+            funcionario.setId(7L);
+            return funcionario;
+        });
+
+        mockMvc.perform(post("/funcionario")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nome": "Ana Silva",
+                                  "cpf": "529.982.247-25",
+                                  "departamentoId": 3
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cpf").value("529.982.247-25"));
+    }
+
+    @Test
+    void rejeitaCpfInvalidoNaEdicaoSemSalvar() throws Exception {
+        mockMvc.perform(put("/funcionario/7")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "cpf": "11111111111"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("CPF inválido."));
+
+        verify(funcionarioRepository, never()).save(any(Funcionario.class));
     }
 
     @Test

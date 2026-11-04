@@ -297,6 +297,7 @@ public class FuncionarioController {
     @Operation(summary = "Cadastra Funcionario", description = "Responsavel por cadastrar um funcionario usando como parametros de entrada" +
             "RequestBody funcionario Request e salvando no banco informações pessoais")
     public ResponseEntity<FuncionarioResponse> cadastrarFuncionario(@RequestBody FuncionarioRequest funcionarioRequest) {
+        validarCpf(funcionarioRequest.getCpf());
         Funcionario funcionarioBanco = new Funcionario();
 
         funcionarioBanco.setNome(funcionarioRequest.getNome());
@@ -328,6 +329,9 @@ public class FuncionarioController {
     @Transactional
     public ResponseEntity <FuncionarioResponse>
     atualizarFuncionarioId(@PathVariable Long id, @RequestBody FuncionarioRequest funcionarioRequest){
+        if (funcionarioRequest.getCpf() != null) {
+            validarCpf(funcionarioRequest.getCpf());
+        }
         return funcionarioRepository.findByIdForUpdate(id).map(funcionarioBanco -> {
             if (funcionarioRequest.getNome() != null) {
                 funcionarioBanco.setNome(funcionarioRequest.getNome());
@@ -356,6 +360,12 @@ public class FuncionarioController {
             return ResponseEntity.ok(new FuncionarioResponse(funcionarioAtualizado));
         })
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private void validarCpf(String cpf) {
+        if (!CpfUtils.isValidCpf(cpf)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CPF inválido.");
+        }
     }
 
     /** Normaliza o telefone com a utilitária compartilhada; valor ausente fica nulo. */
