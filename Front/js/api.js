@@ -199,6 +199,10 @@ const api = {
     return this.put(`/funcionario/${encodeURIComponent(id)}`, funcionario);
   },
 
+  alterarStatusFuncionario(id, dados) {
+    return this.patch(`/funcionario/${encodeURIComponent(id)}/status`, dados);
+  },
+
   listarDepartamentos() {
     return this.get("/departamentos");
   },

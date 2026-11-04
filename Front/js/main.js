@@ -123,6 +123,7 @@ const secoesCarregadas = new Set();
 const secoesCarregando = new Set();
 const secoesParaAtualizar = new Set();
 const funcionariosPorId = new Map();
+let funcionariosCarregados = [];
 const departamentosPorId = new Map();
 let departamentoSelecionado = null;
 let carregamentoFuncionariosDepartamento = 0;
@@ -222,6 +223,19 @@ function mostrarRegistros(secao, registros) {
   const configuracao = secoesDashboard[secao];
   const lista = document.querySelector(`[data-list="${secao}"]`);
   const mensagem = document.querySelector(`[data-status="${secao}"]`);
+  if (secao === "funcionarios") {
+    funcionariosCarregados = Array.isArray(registros) ? [...registros] : [];
+    const filtro = document.querySelector("#filtro-status-funcionario").value;
+    registros = funcionariosCarregados
+      .filter((funcionario) => filtro === "TODOS"
+        || (filtro === "D" ? funcionario.status !== "A" : funcionario.status === "A"))
+      .sort((primeiro, segundo) => {
+        const statusOrdem = Number(primeiro.status !== "A")
+          - Number(segundo.status !== "A");
+        return statusOrdem || String(configuracao.nomeItem(primeiro))
+          .localeCompare(String(configuracao.nomeItem(segundo)), "pt-BR");
+      });
+  }
   lista.replaceChildren();
 
   if (Array.isArray(registros) && secao === "departamentos") {
@@ -256,6 +270,13 @@ function mostrarRegistros(secao, registros) {
   if (!Array.isArray(registros) || registros.length === 0) {
     if (secao === "funcionarios") {
       funcionariosPorId.clear();
+      const filtro = document.querySelector("#filtro-status-funcionario").value;
+      mensagem.textContent = filtro === "D"
+        ? "Nenhum funcionário inativo encontrado."
+        : filtro === "A"
+          ? "Nenhum funcionário ativo encontrado."
+          : "Nenhum funcionário encontrado.";
+      return;
     }
     mensagem.textContent = "Nenhum registro encontrado.";
     return;
@@ -289,7 +310,7 @@ function mostrarRegistros(secao, registros) {
           }
           const detalhe = document.createElement("p");
           const valor = campo === "status"
-            ? registro.status === "D" ? "Inativo" : "Ativo"
+                ? registro.status === "A" ? "Ativo" : "Inativo"
             : registro[campo];
           detalhe.textContent = `${rotulo}: ${valor}`;
           item.append(detalhe);
@@ -308,7 +329,7 @@ function mostrarRegistros(secao, registros) {
       const botaoStatus = document.createElement("button");
       botaoStatus.type = "button";
       botaoStatus.className = registro.status === "D" ? "" : "botao-secundario";
-      if (registro.status === "D") {
+      if (registro.status !== "A") {
         botaoStatus.dataset.reactivateDepartment = String(registro.id);
         botaoStatus.textContent = "Reativar";
       } else {
@@ -323,6 +344,9 @@ function mostrarRegistros(secao, registros) {
 
     const item = document.createElement("article");
     item.className = "item-dashboard";
+    if (secao === "funcionarios" && registro.status !== "A") {
+      item.classList.add("funcionario-inativo");
+    }
 
     const titulo = document.createElement("h3");
     titulo.textContent = configuracao.nomeItem(registro);
@@ -337,7 +361,7 @@ function mostrarRegistros(secao, registros) {
       const nomeTurno = campo === "turno" ? nomeExibicaoTurno(registro[campo]) : null;
       let valor = nomeTurno || registro[campo];
       if (campo === "status") {
-        valor = registro.status === "D" ? "Inativo" : "Ativo";
+        valor = registro.status === "A" ? "Ativo" : "Inativo";
       } else if (campo === "diasSemana" && Array.isArray(registro.diasSemana)) {
         valor = registro.diasSemana.map((dia) => diasSemanaNomes.get(dia) || dia).join(", ");
       } else if (campo === "intervalos" && Array.isArray(registro.intervalos)) {
@@ -385,13 +409,29 @@ function mostrarRegistros(secao, registros) {
     }
 
     if (secao === "funcionarios") {
+      const acoes = document.createElement("div");
+      acoes.className = "acoes-lista";
+
       const botaoEditar = document.createElement("button");
       botaoEditar.type = "button";
       botaoEditar.className = "botao-secundario botao-editar-funcionario";
       botaoEditar.dataset.editEmployee = String(registro.id);
       botaoEditar.textContent = "Editar";
       botaoEditar.setAttribute("aria-label", `Editar ${configuracao.nomeItem(registro)}`);
-      item.append(botaoEditar);
+      acoes.append(botaoEditar);
+
+      const botaoStatus = document.createElement("button");
+      botaoStatus.type = "button";
+      if (registro.status !== "A") {
+        botaoStatus.dataset.reactivateEmployee = String(registro.id);
+        botaoStatus.textContent = "Reativar funcionário";
+      } else {
+        botaoStatus.className = "botao-secundario";
+        botaoStatus.dataset.deactivateEmployee = String(registro.id);
+        botaoStatus.textContent = "Desativar funcionário";
+      }
+      acoes.append(botaoStatus);
+      item.append(acoes);
     }
 
     lista.append(item);
@@ -717,6 +757,46 @@ function abrirFormularioDepartamento(departamento = null) {
     editando ? "Salvar alterações" : "Salvar departamento";
   dialogoDepartamento.showModal();
   document.querySelector("#departamento-nome").focus();
+}
+
+async function alterarStatusFuncionario(id, status, botao) {
+  const reativando = status === "A";
+  const funcionario = funcionariosCarregados.find(
+    (item) => String(item.id) === String(id)
+  );
+  const nome = funcionario?.nome || `Funcionário ${id}`;
+  const confirmacao = reativando
+    ? `Deseja realmente reativar "${nome}"?`
+    : "Deseja realmente desativar este funcionário? Ele não poderá receber novos registros de ponto enquanto estiver inativo.";
+  if (!window.confirm(confirmacao)) {
+    return;
+  }
+
+  const mensagem = document.querySelector('[data-status="funcionarios"]');
+  botao.disabled = true;
+  mensagem.classList.remove("erro");
+  mensagem.textContent = reativando
+    ? "Reativando funcionário..."
+    : "Desativando funcionário...";
+
+  try {
+    const atualizado = await api.alterarStatusFuncionario(id, { status });
+    if (String(atualizado?.id) !== String(id) || atualizado.status !== status) {
+      throw new Error("A API não confirmou o novo status do funcionário.");
+    }
+    funcionariosCarregados = funcionariosCarregados.map((item) =>
+      String(item.id) === String(id) ? atualizado : item
+    );
+    mostrarRegistros("funcionarios", funcionariosCarregados);
+    mensagem.classList.remove("erro");
+    mensagem.textContent = `Funcionário ${reativando ? "reativado" : "desativado"} com sucesso.`;
+  } catch (erro) {
+    mensagem.classList.add("erro");
+    mensagem.textContent =
+      `Não foi possível ${reativando ? "reativar" : "desativar"} o funcionário. ${erro.message}`;
+  } finally {
+    botao.disabled = false;
+  }
 }
 
 async function salvarDepartamento(evento) {
@@ -1148,6 +1228,10 @@ document.querySelectorAll("[data-refresh]").forEach((botao) => {
   botao.addEventListener("click", () => carregarSecao(botao.dataset.refresh, true));
 });
 
+document.querySelector("#filtro-status-funcionario").addEventListener("change", () => {
+  mostrarRegistros("funcionarios", funcionariosCarregados);
+});
+
 document.querySelector("[data-add-employee]").addEventListener("click", () => {
   void abrirFormularioFuncionario();
 });
@@ -1239,6 +1323,22 @@ document.querySelector('[data-list="turnos"]').addEventListener("click", async (
 });
 
 document.querySelector('[data-list="funcionarios"]').addEventListener("click", async (evento) => {
+  const botaoDesativar = evento.target.closest("[data-deactivate-employee]");
+  if (botaoDesativar) {
+    await alterarStatusFuncionario(
+      botaoDesativar.dataset.deactivateEmployee, "D", botaoDesativar
+    );
+    return;
+  }
+
+  const botaoReativar = evento.target.closest("[data-reactivate-employee]");
+  if (botaoReativar) {
+    await alterarStatusFuncionario(
+      botaoReativar.dataset.reactivateEmployee, "A", botaoReativar
+    );
+    return;
+  }
+
   const botaoEditar = evento.target.closest("[data-edit-employee]");
   if (!botaoEditar) {
     return;

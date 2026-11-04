@@ -344,10 +344,12 @@ class RegistroPontoControllerTest {
         Usuario gestorAtivo = new Usuario("Gestor", CPF_GESTOR, "1990-01-01");
         gestorAtivo.setStatus("A");
         when(usuarioRepository.findByCpf(CPF_GESTOR)).thenReturn(Optional.of(gestorAtivo));
-        funcionario.setStatus("I");
+        funcionario.setStatus("D");
         mockMvc.perform(get("/ponto/funcionario")
                         .param("cpf", CPF_FUNCIONARIO).with(cpfAutenticado()))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Não é possível registrar ponto: o funcionário está inativo."));
 
         funcionario.setStatus("A");
         when(funcionarioRepository.findAllByCpfNormalizado(CPF_OUTRO_FUNCIONARIO))
@@ -355,6 +357,25 @@ class RegistroPontoControllerTest {
         mockMvc.perform(get("/ponto/funcionario")
                         .param("cpf", CPF_OUTRO_FUNCIONARIO).with(cpfAutenticado()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void permiteConsultarHistoricoMasBloqueiaNovasMarcacoesParaFuncionarioInativo()
+            throws Exception {
+        funcionario.setStatus("D");
+        mockMvc.perform(get("/ponto")
+                        .param("cpf", CPF_FUNCIONARIO)
+                        .param("data", DATA.toString())
+                        .with(cpfAutenticado()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nomeFuncionario").value("Ana Silva"));
+
+        postarMarcacao("ENTRADA", "08:00")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Não é possível registrar ponto: o funcionário está inativo."));
+        verify(realizacaoTurnoRepository, never()).save(any(RealizacaoTurno.class));
+        verify(auditoriaRepository, never()).save(any(RegistroPontoAuditoria.class));
     }
 
     @Test

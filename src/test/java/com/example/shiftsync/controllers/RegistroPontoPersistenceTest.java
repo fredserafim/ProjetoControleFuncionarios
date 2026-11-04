@@ -36,6 +36,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,6 +71,9 @@ class RegistroPontoPersistenceTest {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private FuncionarioController funcionarioController;
 
     @Test
     void persisteERecuperaMarcacoesEHistoricoDeAuditoria() {
@@ -226,6 +230,116 @@ class RegistroPontoPersistenceTest {
                 persistida.getFimIntervaloReal());
         assertEquals(LocalDateTime.of(2026, 11, 3, 18, 0), persistida.getFimReal());
         assertEquals(4, auditoriaRepository.findByRealizacao_Id(persistida.getId()).size());
+    }
+
+    @Test
+    void persisteDesativacaoEReativacaoSemApagarPontoERejeitaNovasMarcacoes()
+            throws Exception {
+        LocalDate data = LocalDate.of(2026, 11, 3);
+        String cpfGestor = "52998224725";
+        String cpfFuncionario = "11144477735";
+
+        Usuario gestor = new Usuario("Gestor de teste", cpfGestor, "1990-01-01");
+        gestor.setStatus("A");
+        usuarioRepository.saveAndFlush(gestor);
+
+        Funcionario funcionario = new Funcionario();
+        funcionario.setNome("Funcionário com histórico");
+        funcionario.setCpf(cpfFuncionario);
+        funcionario.setStatus("A");
+        funcionarioRepository.saveAndFlush(funcionario);
+
+        Turno turno = new Turno();
+        turno.setNome("Jornada administrativa");
+        turno.setStatus("A");
+        turno.setTipoJornada("DIURNA");
+        turno.setTipoEscala("SEMANAL_FIXA");
+        turno.setHorarioInicio(LocalTime.of(8, 0));
+        turno.setHorarioFim(LocalTime.of(18, 0));
+        turno.setDiasSemana(Set.of(DayOfWeek.TUESDAY));
+        turno.setIntervalos(List.of(
+                new IntervaloJornada(LocalTime.of(12, 0), LocalTime.of(13, 30))));
+        turnoRepository.saveAndFlush(turno);
+
+        AtribuicaoTurno atribuicao = new AtribuicaoTurno();
+        atribuicao.setFuncionario(funcionario);
+        atribuicao.setTurno(turno);
+        atribuicao.setVigenciaInicio(data.atStartOfDay());
+        atribuicaoTurnoRepository.saveAndFlush(atribuicao);
+
+        Clock clock = Clock.fixed(
+                data.atTime(20, 0).atZone(ZoneId.of("America/Sao_Paulo")).toInstant(),
+                ZoneId.of("America/Sao_Paulo"));
+        MockMvc pontoApi = MockMvcBuilders.standaloneSetup(new RegistroPontoController(
+                        funcionarioRepository,
+                        atribuicaoTurnoRepository,
+                        realizacaoTurnoRepository,
+                        auditoriaRepository,
+                        usuarioRepository,
+                        clock))
+                .setControllerAdvice(new ApiExceptionHandler())
+                .build();
+        MockMvc funcionarioApi = MockMvcBuilders.standaloneSetup(funcionarioController)
+                .setControllerAdvice(new ApiExceptionHandler())
+                .build();
+
+        registrarPelaApi(pontoApi, cpfGestor, cpfFuncionario, data, "ENTRADA", "08:00");
+        registrarPelaApi(pontoApi, cpfGestor, cpfFuncionario, data, "SAIDA_INTERVALO", "12:00");
+        registrarPelaApi(
+                pontoApi, cpfGestor, cpfFuncionario, data, "RETORNO_INTERVALO", "13:30");
+        registrarPelaApi(pontoApi, cpfGestor, cpfFuncionario, data, "SAIDA_FINAL", "18:00");
+
+        funcionarioApi.perform(patch("/funcionario/" + funcionario.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"D\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(funcionario.getId()))
+                .andExpect(jsonPath("$.status").value("D"));
+        entityManager.flush();
+        entityManager.clear();
+
+        Funcionario desativado =
+                funcionarioRepository.findAllByCpfNormalizado(cpfFuncionario).get(0);
+        assertEquals("D", desativado.getStatus());
+        assertEquals(1, atribuicaoTurnoRepository
+                .findByFuncionario_IdOrderByVigenciaInicioAsc(desativado.getId()).size());
+
+        pontoApi.perform(get("/ponto")
+                        .param("cpf", cpfFuncionario)
+                        .param("data", data.toString())
+                        .with(request -> {
+                            request.setAttribute("authenticatedCpf", cpfGestor);
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entrada").value("2026-11-03T08:00:00"))
+                .andExpect(jsonPath("$.saidaFinal").value("2026-11-03T18:00:00"));
+
+        pontoApi.perform(post("/ponto/marcacoes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"cpf":"%s","data":"%s","marcacao":"ENTRADA","horario":"08:00"}
+                                """.formatted(cpfFuncionario, data))
+                        .with(request -> {
+                            request.setAttribute("authenticatedCpf", cpfGestor);
+                            return request;
+                        }))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Não é possível registrar ponto: o funcionário está inativo."));
+
+        funcionarioApi.perform(patch("/funcionario/" + desativado.getId() + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"A\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("A"));
+        entityManager.flush();
+        entityManager.clear();
+        assertEquals("A", funcionarioRepository.findAllByCpfNormalizado(cpfFuncionario)
+                .get(0).getStatus());
+        assertEquals(4, auditoriaRepository.findByRealizacao_Id(
+                realizacaoTurnoRepository.findByAtribuicao_IdAndInicioPlanejado(
+                        atribuicao.getId(), data.atTime(8, 0)).orElseThrow().getId()).size());
     }
 
     @Test

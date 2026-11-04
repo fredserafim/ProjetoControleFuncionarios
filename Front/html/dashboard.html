@@ -149,6 +149,12 @@
         <div class="barra-lista">
           <h2 id="titulo-funcionarios">Funcionários cadastrados</h2>
           <div class="acoes-lista">
+            <label for="filtro-status-funcionario">Exibir:</label>
+            <select id="filtro-status-funcionario" aria-label="Filtrar funcionários por status">
+              <option value="A" selected>Ativos</option>
+              <option value="D">Inativos</option>
+              <option value="TODOS">Todos</option>
+            </select>
             <button type="button" class="botao-secundario" data-refresh="funcionarios">Atualizar</button>
             <button type="button" data-add-employee>Adicionar Funcionário</button>
           </div>

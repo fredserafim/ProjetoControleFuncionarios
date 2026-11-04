@@ -99,7 +99,7 @@ public class RegistroPontoController {
             @RequestParam LocalDate data,
             HttpServletRequest request) {
         obterCpfGestorAutenticado(request);
-        Funcionario funcionario = buscarFuncionarioAtivo(cpf);
+        Funcionario funcionario = buscarFuncionario(cpf);
         OcorrenciaFuncionario ocorrencia = buscarOcorrencia(funcionario, data);
         RealizacaoTurno realizacao = realizacaoTurnoRepository
                 .findByAtribuicao_IdAndInicioPlanejado(
@@ -121,7 +121,7 @@ public class RegistroPontoController {
             @RequestParam LocalDate fim,
             HttpServletRequest request) {
         obterCpfGestorAutenticado(request);
-        Funcionario funcionario = buscarFuncionarioAtivo(cpf);
+        Funcionario funcionario = buscarFuncionario(cpf);
         if (fim.isBefore(inicio) || ChronoUnit.DAYS.between(inicio, fim) > 31) {
             throw requisicaoInvalida(
                     "Informe um período válido de até 32 dias corridos.");
@@ -177,7 +177,7 @@ public class RegistroPontoController {
                     "Informe o CPF, a data, o tipo e o horário da marcação.");
         }
         String cpfGestor = obterCpfGestorAutenticado(request);
-        Funcionario funcionario = buscarFuncionarioAtivo(requestBody.getCpf());
+        Funcionario funcionario = buscarFuncionario(requestBody.getCpf());
         Funcionario funcionarioBloqueado = funcionarioRepository
                 .findByIdForUpdate(funcionario.getId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -233,7 +233,7 @@ public class RegistroPontoController {
             @RequestParam String mes,
             HttpServletRequest request) {
         obterCpfGestorAutenticado(request);
-        Funcionario funcionario = buscarFuncionarioAtivo(cpf);
+        Funcionario funcionario = buscarFuncionario(cpf);
         YearMonth referencia;
         try {
             referencia = YearMonth.parse(mes);
@@ -375,6 +375,13 @@ public class RegistroPontoController {
 
     /** Valida o CPF do funcionário informado e localiza um único cadastro ativo. */
     private Funcionario buscarFuncionarioAtivo(String cpf) {
+        Funcionario funcionario = buscarFuncionario(cpf);
+        validarFuncionarioAtivo(funcionario);
+        return funcionario;
+    }
+
+    /** Localiza cadastro sem restringir consultas de histórico a funcionários ativos. */
+    private Funcionario buscarFuncionario(String cpf) {
         if (!CpfUtils.isValidCpf(cpf)) {
             throw requisicaoInvalida("Informe um CPF válido.");
         }
@@ -390,16 +397,15 @@ public class RegistroPontoController {
                     HttpStatus.CONFLICT,
                     "O CPF está associado a mais de um funcionário; procure o administrador.");
         }
-        Funcionario funcionario = encontrados.get(0);
-        validarFuncionarioAtivo(funcionario);
-        return funcionario;
+        return encontrados.get(0);
     }
 
-    /** Exige status ativo antes de permitir consultas ou novas marcações do funcionário. */
+    /** Exige status ativo antes de novas marcações ou seleção para registrar ponto. */
     private void validarFuncionarioAtivo(Funcionario funcionario) {
         if (!"A".equalsIgnoreCase(funcionario.getStatus())) {
             throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "O funcionário não está ativo para registrar ponto.");
+                    HttpStatus.BAD_REQUEST,
+                    "Não é possível registrar ponto: o funcionário está inativo.");
         }
     }
 

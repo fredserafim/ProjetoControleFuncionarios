@@ -166,7 +166,8 @@ class FuncionarioControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.nome").value("Ana Silva"))
-                .andExpect(jsonPath("$.departamentoId").value(3));
+                .andExpect(jsonPath("$.departamentoId").value(3))
+                .andExpect(jsonPath("$.status").value("A"));
     }
 
     @Test
@@ -560,8 +561,9 @@ class FuncionarioControllerTest {
     }
 
     @Test
-    void atualizaEDesativaStatusDoFuncionario() throws Exception {
+    void desativaEReativaFuncionarioApenasComStatusPermitido() throws Exception {
         Funcionario funcionario = funcionario(7L, departamento(3L, "Financeiro"));
+        when(funcionarioRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(funcionario));
         when(funcionarioRepository.findById(7L)).thenReturn(Optional.of(funcionario));
         when(funcionarioRepository.save(any(Funcionario.class)))
                 .thenAnswer(invocacao -> invocacao.getArgument(0));
@@ -570,16 +572,45 @@ class FuncionarioControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "status": "I"
+                                  "status": "D"
                                 }
                                 """))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.status").value("D"))
                 .andExpect(jsonPath("$.mensagem").value("Status atualizado com sucesso!"));
+
+        mockMvc.perform(patch("/funcionario/7/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "A"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("A"));
 
         mockMvc.perform(delete("/funcionario/7"))
                 .andExpect(status().isOk());
 
-        verify(funcionarioRepository, org.mockito.Mockito.times(2)).save(funcionario);
+        verify(funcionarioRepository, org.mockito.Mockito.times(3)).save(funcionario);
+        verify(funcionarioRepository, org.mockito.Mockito.times(2)).findByIdForUpdate(7L);
+    }
+
+    @Test
+    void rejeitaStatusDeFuncionarioDiferenteDeAtivoOuDesativado() throws Exception {
+        mockMvc.perform(patch("/funcionario/7/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "status": "I"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("O status deve ser A (ativo) ou D (inativo)."));
+
+        verify(funcionarioRepository, never()).save(any(Funcionario.class));
     }
 
     private static Funcionario funcionario(Long id, Departamento departamento) {

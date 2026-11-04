@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -829,20 +830,31 @@ public class FuncionarioController {
                         "Departamento não encontrado: " + nomeDepartamento));
     }
 
-    /** Atualiza apenas o status do funcionário. */
-    @PatchMapping("/{id}/status")// atualiza pontualmente
-    public ResponseEntity<FuncionarioResponse> AtualizarStatusFuncionario(@PathVariable Long id, @RequestBody AtualizaStatusFuncionarioRequest funcionarioRequest){
-
-        Funcionario funcionarioBanco = funcionarioRepository.findById(id).orElse(null);
-
-        if(funcionarioBanco != null){
-            funcionarioBanco.setStatus(funcionarioRequest.getStatus());
-            funcionarioRepository.save(funcionarioBanco);
-
-            return ResponseEntity.ok(new FuncionarioResponse(funcionarioBanco.getId(), "Status atualizado com sucesso!"));
-
+    /** Altera somente entre os estados permitidos, mantendo os demais dados e históricos. */
+    @PatchMapping("/{id}/status")
+    @Transactional
+    public ResponseEntity<FuncionarioResponse> atualizarStatusFuncionario(
+            @PathVariable Long id,
+            @RequestBody AtualizaStatusFuncionarioRequest funcionarioRequest) {
+        if (funcionarioRequest == null || funcionarioRequest.getStatus() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Informe o status A (ativo) ou D (inativo).");
         }
-        return ResponseEntity.notFound().build();
+
+        String status = funcionarioRequest.getStatus().trim().toUpperCase(Locale.ROOT);
+        if (!"A".equals(status) && !"D".equals(status)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "O status deve ser A (ativo) ou D (inativo).");
+        }
+
+        Funcionario funcionarioBanco = funcionarioRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Funcionário não encontrado."));
+        funcionarioBanco.setStatus(status);
+        FuncionarioResponse resposta =
+                new FuncionarioResponse(funcionarioRepository.save(funcionarioBanco));
+        resposta.setMensagem("Status atualizado com sucesso!");
+        return ResponseEntity.ok(resposta);
     }
 
 

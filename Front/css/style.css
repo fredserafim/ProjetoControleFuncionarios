@@ -344,6 +344,16 @@ button:disabled {
   background: #fff;
 }
 
+.item-dashboard.funcionario-inativo {
+  border-left-color: #87938d;
+  background: #f3f5f4;
+}
+
+.funcionario-inativo h3,
+.funcionario-inativo p {
+  color: #68756f;
+}
+
 .botao-departamento {
   width: 100%;
   min-height: 58px;
