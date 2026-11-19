@@ -1,4 +1,6 @@
-// Camada única de comunicação com a API: centraliza cabeçalhos, autenticação e erros.
+// Camada única de comunicação com a API: centraliza cabeçalhos,
+// autenticação e erros.
+
 const API_BASE_URL = "https://projetocontrolefuncionarios.onrender.com";
 
 // Mostra o erro no local da interface que estiver visível, quando houver um destino.
