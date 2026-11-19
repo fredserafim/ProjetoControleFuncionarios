@@ -1,7 +1,7 @@
 // Camada única de comunicação com a API: centraliza cabeçalhos,
 // autenticação e erros.
 
-const API_BASE_URL = "https://projetocontrolefuncionarios.onrender.com";
+const API_BASE_URL = "https://projetocontrolefuncionarios.onrender.com/";
 
 // Mostra o erro no local da interface que estiver visível, quando houver um destino.
 function mostrarErroApi(mensagem) {
@@ -129,142 +129,142 @@ const api = {
 
   // Os wrappers mantêm caminhos e parâmetros da API em um só lugar.
   listarUsuarios() {
-    return this.get("/usuarios");
+    return this.get("usuarios");
   },
 
   buscarUsuarioPorId(id) {
-    return this.get(`/usuarios/${encodeURIComponent(id)}`);
+    return this.get(`usuarios/${encodeURIComponent(id)}`);
   },
 
   cadastrarUsuario(usuario) {
-    return this.post("/usuarios", usuario);
+    return this.post("usuarios", usuario);
   },
 
   atualizarUsuario(id, usuario) {
-    return this.put(`/usuarios/${encodeURIComponent(id)}`, usuario);
+    return this.put(`usuarios/${encodeURIComponent(id)}`, usuario);
   },
 
   alterarStatusUsuario(id, dados) {
-    return this.patch(`/usuarios/${encodeURIComponent(id)}/status`, dados);
+    return this.patch(`usuarios/${encodeURIComponent(id)}/status`, dados);
   },
 
   listarTurnos() {
-    return this.get("/turnos");
+    return this.get("turnos");
   },
 
   buscarTurnoPorId(id) {
-    return this.get(`/turnos/${encodeURIComponent(id)}`);
+    return this.get(`turnos/${encodeURIComponent(id)}`);
   },
 
   consultarDiaDeTrabalho(id, data) {
-    return this.get(`/turnos/${encodeURIComponent(id)}/trabalha?data=${encodeURIComponent(data)}`);
+    return this.get(`turnos/${encodeURIComponent(id)}/trabalha?data=${encodeURIComponent(data)}`);
   },
 
   listarOcorrenciasTurno(id, inicio, fim) {
     const parametros = new URLSearchParams({ inicio, fim });
-    return this.get(`/turnos/${encodeURIComponent(id)}/ocorrencias?${parametros}`);
+    return this.get(`turnos/${encodeURIComponent(id)}/ocorrencias?${parametros}`);
   },
 
   cadastrarTurno(turno) {
-    return this.post("/turnos", turno);
+    return this.post("turnos", turno);
   },
 
   atualizarTurno(id, turno) {
-    return this.put(`/turnos/${encodeURIComponent(id)}`, turno);
+    return this.put(`turnos/${encodeURIComponent(id)}`, turno);
   },
 
   alterarStatusTurno(id, dados) {
-    return this.patch(`/turnos/${encodeURIComponent(id)}/status`, dados);
+    return this.patch(`turnos/${encodeURIComponent(id)}/status`, dados);
   },
 
   excluirTurno(id) {
-    return this.delete(`/turnos/${encodeURIComponent(id)}`);
+    return this.delete(`turnos/${encodeURIComponent(id)}`);
   },
 
   listarFuncionarios() {
-    return this.get("/funcionario");
+    return this.get("funcionario");
   },
 
   buscarFuncionarioPorId(id) {
-    return this.get(`/funcionario/${encodeURIComponent(id)}`);
+    return this.get(`funcionario/${encodeURIComponent(id)}`);
   },
 
   consultarCep(cep) {
-    return this.get(`/funcionario/consultar-cep?cep=${encodeURIComponent(cep)}`);
+    return this.get(`funcionario/consultar-cep?cep=${encodeURIComponent(cep)}`);
   },
 
   cadastrarFuncionario(funcionario) {
-    return this.post("/funcionario", funcionario);
+    return this.post("funcionario", funcionario);
   },
 
   atualizarFuncionario(id, funcionario) {
-    return this.put(`/funcionario/${encodeURIComponent(id)}`, funcionario);
+    return this.put(`funcionario/${encodeURIComponent(id)}`, funcionario);
   },
 
   alterarStatusFuncionario(id, dados) {
-    return this.patch(`/funcionario/${encodeURIComponent(id)}/status`, dados);
+    return this.patch(`funcionario/${encodeURIComponent(id)}/status`, dados);
   },
 
   listarDepartamentos() {
-    return this.get("/departamentos");
+    return this.get("departamentos");
   },
 
   buscarDepartamentoPorId(id) {
-    return this.get(`/departamentos/${encodeURIComponent(id)}`);
+    return this.get(`departamentos/${encodeURIComponent(id)}`);
   },
 
   cadastrarDepartamento(departamento) {
-    return this.post("/departamentos", departamento);
+    return this.post("departamentos", departamento);
   },
 
   atualizarDepartamento(id, departamento) {
-    return this.put(`/departamentos/${encodeURIComponent(id)}`, departamento);
+    return this.put(`departamentos/${encodeURIComponent(id)}`, departamento);
   },
 
   alterarStatusDepartamento(id, dados) {
-    return this.patch(`/departamentos/${encodeURIComponent(id)}/status`, dados);
+    return this.patch(`departamentos/${encodeURIComponent(id)}/status`, dados);
   },
 
   excluirDepartamento(id) {
-    return this.delete(`/departamentos/${encodeURIComponent(id)}`);
+    return this.delete(`departamentos/${encodeURIComponent(id)}`);
   },
 
   listarFuncionariosPorDepartamento(id) {
-    return this.get(`/funcionario/${encodeURIComponent(id)}/departamento`);
+    return this.get(`funcionario/${encodeURIComponent(id)}/departamento`);
   },
 
   buscarFuncionarioPonto(cpf) {
-    return this.get(`/ponto/funcionario?cpf=${encodeURIComponent(cpf)}`);
+    return this.get(`ponto/funcionario?cpf=${encodeURIComponent(cpf)}`);
   },
 
   consultarPonto(cpf, data) {
     const parametros = new URLSearchParams({ cpf, data });
-    return this.get(`/ponto?${parametros}`);
+    return this.get(`ponto?${parametros}`);
   },
 
   consultarPeriodoPonto(cpf, inicio, fim) {
     const parametros = new URLSearchParams({ cpf, inicio, fim });
-    return this.get(`/ponto/periodo?${parametros}`);
+    return this.get(`ponto/periodo?${parametros}`);
   },
 
   registrarMarcacaoPonto(dados) {
-    return this.post("/ponto/marcacoes", dados);
+    return this.post("ponto/marcacoes", dados);
   },
 
   consultarResumoMensalPonto(cpf, mes) {
     const parametros = new URLSearchParams({ cpf, mes });
-    return this.get(`/ponto/resumo-mensal?${parametros}`);
+    return this.get(`ponto/resumo-mensal?${parametros}`);
   },
 
   listarEmpresas() {
-    return this.get("/empresas");
+    return this.get("empresas");
   },
 
   listarGerentes() {
-    return this.get("/gerentes");
+    return this.get("gerentes");
   },
 
   login(dados) {
-    return this.post("/login", dados);
+    return this.post("login", dados);
   }
 };
