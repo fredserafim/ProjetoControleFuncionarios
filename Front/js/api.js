@@ -32,7 +32,7 @@ async function requisicao(caminho, opcoes = {}) {
     if (opcoes.body) {
       cabecalhos.set("Content-Type", "application/json");
     }
-    if (token && caminho !== "/login") {
+    if (token && caminho !== "login") {
       cabecalhos.set("Authorization", `Bearer ${token}`);
     }
 
@@ -66,7 +66,7 @@ async function requisicao(caminho, opcoes = {}) {
     const mensagemExibida =
       mensagem || ({
         400: "Os dados enviados são inválidos. Confira os campos e tente novamente.",
-        401: caminho === "/login"
+        401: caminho === "login"
           ? "Login ou senha inválidos."
           : "Sua sessão expirou. Entre novamente.",
         403: "Você não tem permissão para realizar esta operação.",
@@ -80,7 +80,7 @@ async function requisicao(caminho, opcoes = {}) {
       `[API] Resposta de erro em ${metodo} ${url}: HTTP ${resposta.status}.`
     );
 
-    if (resposta.status === 401 && caminho !== "/login") {
+    if (resposta.status === 401 && caminho !== "login") {
       localStorage.removeItem("token");
       window.location.replace("index.html?sessionExpired=1");
     }
